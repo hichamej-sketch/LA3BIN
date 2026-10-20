@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayGrid - Matchmaking sportif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="antialiased pb-24">
+
+    <script>
+        // --- 1. CONNEXION SUPABASE ---
+        const SUPABASE_URL = 'https://elrimadnclaawodmrsam.supabase.co/';
+        const SUPABASE_KEY = 'sb_publishable_uW0oG_fEhbn5IKlhnplj7g_XQL-MbJW';
+        const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- 2. GESTION DU MENU ---
+        function toggleModal() {
+            const modal = document.getElementById('modal-organiser');
+            modal.classList.toggle('hidden');
+        }
+
+        // --- 3. ENREGISTREMENT DE LA PARTIE ---
+        async function creerPartie() {
+            const sport = document.getElementById('input-sport').value;
+            const date = document.getElementById('input-date').value;
+            const time = document.getElementById('input-time').value;
+            const lieu = document.getElementById('input-lieu').value;
+            const whatsapp = document.getElementById('input-whatsapp').value;
+            const waze = document.getElementById('input-waze').value;
+            const validationManuelle = document.getElementById('input-validation').checked;
+
+            if(!date || !time || !lieu) {
+                alert("⚠️ Veuillez remplir la date, l'heure et le lieu.");
+                return;
+            }
+
+            const gameTime = new Date(`${date}T${time}:00`).toISOString();
+            const notesData = `Validation: ${validationManuelle ? 'Oui' : 'Non'} | WhatsApp: ${whatsapp} | Waze: ${waze}`;
+
+            const btn = document.getElementById('btn-creer');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création...';
+
+            const { data, error } = await client.from('games').insert([
+                { activity_type: sport, location_name: lieu, game_time: gameTime, players_needed: 3, notes: notesData }
+            ]);
+
+            btn.innerHTML = 'Créer la partie';
+            
+            if (error) {
+                alert("❌ Erreur : " + error.message);
+            } else {
+                toggleModal();
+                document.getElementById('form-creation').reset();
+                chargerParties(); // On rafraîchit la liste des parties immédiatement !
+            }
+        }
+
+        // --- 4. CHARGEMENT DES PARTIES EN DIRECT ---
+        async function chargerParties() {
+            const feed = document.getElementById('feed-parties');
+            // Afficher une icône de chargement
+            feed.innerHTML = '<div class="text-center text-emerald-500 py-10"><i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i><p class="text-gray-400 text-sm font-semibold">Recherche des parties autour de vous...</p></div>';
+
+            // On demande à Supabase toutes les parties, classées par date
+            const { data, error } = await client.from('games').select('*').order('game_time', { ascending: true });
+
+            if (error) {
+                feed.innerHTML = `<p class="text-red-500 text-center py-4">Erreur de chargement: ${error.message}</p>`;
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                feed.innerHTML = '<div class="bg-gray-800 border border-dashed border-gray-700 rounded-xl p-8 text-center"><div class="text-4xl mb-3">🏟️</div><p class="text-gray-300 font-semibold mb-1">Aucune partie prévue</p><p class="text-sm text-gray-500">Soyez le premier à organiser un match !</p></div>';
+                return;
+            }
+
+            feed.innerHTML = ''; // On vide le message de chargement
+
+            // On crée une carte pour chaque partie trouvée
+            data.forEach(partie => {
+                let emoji = '🏅';
+                if(partie.activity_type.toLowerCase().includes('foot')) emoji = '⚽';
+                if(partie.activity_type.toLowerCase().includes('padel')) emoji = '🎾';
+                if(partie.activity_type.toLowerCase().includes('jeux') || partie.activity_type.toLowerCase().includes('société')) emoji = '🎲';
+                if(partie.activity_type.toLowerCase().includes('basket')) emoji = '🏀';
+
+                const dateObj = new Date(partie.game_time);
+                const heureStr = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                const dateStr = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+
+                const cardHTML = `
+                    <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden transition hover:border-emerald-500/50 cursor-pointer mb-4">
+                        <div class="absolute top-0 right-0 bg-emerald-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-bl-lg">
+                            Il manque ${partie.players_needed} joueurs
+                        </div>
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center text-xl border border-gray-700 shadow-inner text-white">
+                                ${emoji}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg text-white">${partie.activity_type}</h3>
+                                <p class="text-emerald-400 text-sm font-semibold"><i class="far fa-clock mr-1"></i> ${dateStr} à ${heureStr}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-sm text-gray-300 mb-5 bg-gray-900/50 p-2.5 rounded-lg border border-gray-700/50">
+                            <i class="fas fa-map-marker-alt w-6 text-center text-gray-500"></i> 
+                            <span class="truncate font-medium">${partie.location_name}</span>
+                        </div>
+                        <button class="w-full bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold py-3.5 rounded-lg transition duration-200 shadow-lg shadow-emerald-500/20">
+                            Demander à rejoindre
+                        </button>
+                    </div>
+                `;
+                feed.insertAdjacentHTML('beforeend', cardHTML);
+            });
+        }
+
+        // Lancer le chargement automatiquement dès que la page s'ouvre
+        document.addEventListener('DOMContentLoaded', chargerParties);
+    </script>
+
+    <!-- En-tête -->
+    <header class="bg-gray-900 border-b border-gray-800 p-4 sticky top-0 z-40 shadow-sm shadow-black/20">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">PlayGrid</h1>
+            <div class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center border-2 border-emerald-500 text-sm font-bold shadow-lg shadow-emerald-500/20 text-white">100%</div>
+        </div>
+    </header>
+
+    <!-- Contenu Principal -->
+    <main class="max-w-md mx-auto p-4 mt-2">
+        <div class="flex justify-between items-end mb-5">
+            <div>
+                <h2 class="text-3xl font-extrabold tracking-tight">À proximité</h2>
+                <p class="text-gray-400 text-sm mt-1 font-medium">Casablanca et environs</p>
+            </div>
+            <button class="bg-gray-800 p-2.5 rounded-xl text-emerald-400 hover:bg-gray-700 border border-gray-700 transition"><i class="fas fa-filter"></i></button>
+        </div>
+
+        <div class="flex gap-2.5 overflow-x-auto pb-4 mb-3 scrollbar-hide">
+            <button class="px-5 py-2.5 bg-emerald-500 text-gray-900 font-bold rounded-full whitespace-nowrap shadow-md shadow-emerald-500/20">Tout</button>
+            <button class="px-5 py-2.5 bg-gray-800 text-white font-medium rounded-full whitespace-nowrap border border-gray-700 hover:bg-gray-700 transition">🎾 Padel</button>
+            <button class="px-5 py-2.5 bg-gray-800 text-white font-medium rounded-full whitespace-nowrap border border-gray-700 hover:bg-gray-700 transition">⚽ Football</button>
+            <button class="px-5 py-2.5 bg-gray-800 text-white font-medium rounded-full whitespace-nowrap border border-gray-700 hover:bg-gray-700 transition">🎲 Jeux</button>
+        </div>
+
+        <!-- C'est ici que les parties de Supabase vont s'afficher ! -->
+        <div id="feed-parties" class="space-y-4 pb-10">
+            <!-- Vide au départ, rempli par le code Javascript -->
+        </div>
+    </main>
+
+    <!-- MODAL "ORGANISER UNE PARTIE" -->
+    <div id="modal-organiser" class="hidden fixed inset-0 bg-black/90 z-50 flex flex-col justify-end backdrop-blur-sm transition-all">
+        <div class="bg-gray-900 w-full max-w-md mx-auto rounded-t-3xl p-6 h-[85vh] overflow-y-auto border-t border-gray-800 relative shadow-2xl">
+            <button onclick="toggleModal()" class="absolute top-5 right-5 text-gray-500 hover:text-white text-2xl bg-gray-800 w-8 h-8 rounded-full flex items-center justify-center transition"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-extrabold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Organiser un match</h2>
+            
+            <form id="form-creation" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Activité</label>
+                    <select id="input-sport" class="w-full bg-gray-800 border border-gray-700 rounded-xl p-3.5 text-white font-medium focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                        <option value="Padel">🎾 Padel</option>
+                        <option value="Football">⚽ Football</option>
+                        <option value="Jeux de société">🎲 Jeux de société</option>
+                        <option value="Basketball">🏀 Basketball</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="w-1/2">
+                        <label class="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Date</label>
+                        <input type="date" id="input-date" class="w-full bg-gray-800 border border-gray-700 rounded-xl p-3.5 text-white focus:outline-none focus:border-emerald-500 transition" required>
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Heure</label>
+                        <input type="time" id="input-time" class="w-full bg-gray-800 border border-gray-700 rounded-xl p-3.5 text-white focus:outline-none focus:border-emerald-500 transition" required>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Lieu de la partie</label>
+                    <input type="text" id="input-lieu" placeholder="Ex: Oasis Padel Club" class="w-full bg-gray-800 border border-gray-700 rounded-xl p-3.5 text-white mb-2 focus:outline-none focus:border-emerald-500 transition" required>
+                    <input type="url" id="input-waze" placeholder="Lien Waze ou Maps (Optionnel)" class="w-full bg-gray-800 border border-gray-700/50 rounded-xl p-3.5 text-sm text-gray-400 focus:outline-none focus:border-emerald-500 transition">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Lien d'invitation WhatsApp</label>
+                    <input type="url" id="input-whatsapp" placeholder="https://chat.whatsapp.com/..." class="w-full bg-gray-800 border border-gray-700 border-l-4 border-l-emerald-500 rounded-xl p-3.5 text-white focus:outline-none focus:border-emerald-500 transition">
+                </div>
+
+                <div class="bg-gray-800 border border-gray-700 p-4.5 rounded-xl flex items-center justify-between mt-2">
+                    <div>
+                        <h4 class="font-bold text-white text-sm">Validation Manuelle</h4>
+                        <p class="text-xs text-gray-400 mt-1">Acceptez les profils avant de partager le lieu exact.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="input-validation" class="sr-only peer" checked>
+                        <div class="w-12 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-gray-900 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 peer-checked:after:bg-white"></div>
+                    </label>
+                </div>
+
+                <button type="button" id="btn-creer" onclick="creerPartie()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-extrabold text-lg py-4 rounded-xl mt-6 shadow-xl shadow-emerald-500/20 transition transform active:scale-95">
+                    Créer la partie
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="fixed bottom-0 w-full bg-gray-900 border-t border-gray-800 pb-safe z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <div class="max-w-md mx-auto flex justify-around p-2">
+            <button class="text-emerald-400 flex flex-col items-center p-2 w-16"><i class="fas fa-home text-xl mb-1"></i><span class="text-[10px] font-bold uppercase tracking-wider">Feed</span></button>
+            <button onclick="toggleModal()" class="text-gray-500 hover:text-white flex flex-col items-center p-2 relative -top-6 transition transform hover:-translate-y-1 active:scale-90 w-16">
+                <div class="bg-emerald-500 text-gray-900 w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/40 border-4 border-gray-900"><i class="fas fa-plus text-2xl"></i></div>
+                <span class="text-[10px] font-bold mt-1 text-gray-400 uppercase tracking-wider">Créer</span>
+            </button>
+            <button class="text-gray-500 hover:text-white flex flex-col items-center p-2 w-16"><i class="fas fa-comment-alt text-xl mb-1"></i><span class="text-[10px] font-bold uppercase tracking-wider">Chat</span></button>
+        </div>
+    </nav>
+</body>
+</html>
