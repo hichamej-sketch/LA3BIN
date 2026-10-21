@@ -2,18 +2,23 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PlayGrid - Matchmaking sportif</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PlayGrid - Matchmaking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f4f4f5; color: #09090b; }
+        body { font-family: 'Inter', sans-serif; background-color: #f4f4f5; color: #09090b; -webkit-tap-highlight-color: transparent; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="antialiased pb-24 selection:bg-orange-500 selection:text-white bg-zinc-100">
+<body class="antialiased pb-32 selection:bg-orange-500 selection:text-white bg-zinc-100 relative">
+
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen" class="fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center transition-opacity duration-500">
+        <h1 class="text-6xl font-black text-black tracking-tighter uppercase animate-pulse">PlayGrid<span class="text-orange-500">.</span></h1>
+    </div>
 
     <script>
         // --- 1. CONNEXION SUPABASE ---
@@ -26,14 +31,24 @@
         // --- 2. GESTION DE L'AUTHENTIFICATION ---
         client.auth.onAuthStateChange((event, session) => {
             const authScreen = document.getElementById('screen-auth');
+            const splashScreen = document.getElementById('splash-screen');
+
             if (session) {
                 currentUser = session.user;
-                authScreen.classList.add('hidden'); 
-                chargerParties(); 
+                authScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => authScreen.classList.add('hidden'), 300);
+                switchView('feed'); 
             } else {
                 currentUser = null;
-                authScreen.classList.remove('hidden'); 
-                document.getElementById('feed-parties').innerHTML = ''; 
+                authScreen.classList.remove('hidden');
+                setTimeout(() => authScreen.classList.remove('opacity-0', 'pointer-events-none'), 10);
+            }
+
+            if (splashScreen && !splashScreen.classList.contains('hidden')) {
+                setTimeout(() => {
+                    splashScreen.classList.add('opacity-0');
+                    setTimeout(() => splashScreen.classList.add('hidden'), 500);
+                }, 400);
             }
         });
 
@@ -43,10 +58,8 @@
             if (!email || !password) return alert("Veuillez remplir l'email et le mot de passe.");
             
             const btn = document.getElementById('btn-register');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création...';
-            
-            const { data, error } = await client.auth.signUp({ email: email, password: password });
-            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const { error } = await client.auth.signUp({ email: email, password: password });
             btn.innerHTML = 'Créer un compte';
             if (error) alert("❌ Erreur : " + error.message);
         }
@@ -57,24 +70,45 @@
             if (!email || !password) return alert("Veuillez remplir l'email et le mot de passe.");
             
             const btn = document.getElementById('btn-login');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connexion...';
-            
-            const { data, error } = await client.auth.signInWithPassword({ email: email, password: password });
-            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const { error } = await client.auth.signInWithPassword({ email: email, password: password });
             btn.innerHTML = 'Se connecter';
             if (error) alert("❌ Identifiants incorrects.");
         }
 
         async function seDeconnecter() {
+            document.getElementById('splash-screen').classList.remove('hidden');
+            setTimeout(() => document.getElementById('splash-screen').classList.remove('opacity-0'), 10);
             await client.auth.signOut();
         }
 
-        // --- 3. GESTION DU MENU ET DES PARTIES ---
-        function toggleModal() {
-            const modal = document.getElementById('modal-organiser');
-            modal.classList.toggle('hidden');
+        // --- 3. NAVIGATION (FEED VS DASHBOARD) ---
+        function switchView(viewName) {
+            const viewFeed = document.getElementById('view-feed');
+            const viewDashboard = document.getElementById('view-dashboard');
+            const navFeed = document.getElementById('nav-feed');
+            const navDash = document.getElementById('nav-dash');
+
+            if(viewName === 'feed') {
+                viewFeed.classList.remove('hidden');
+                viewDashboard.classList.add('hidden');
+                navFeed.classList.replace('text-zinc-400', 'text-black');
+                navDash.classList.replace('text-black', 'text-zinc-400');
+                chargerParties();
+            } else {
+                viewFeed.classList.add('hidden');
+                viewDashboard.classList.remove('hidden');
+                navDash.classList.replace('text-zinc-400', 'text-black');
+                navFeed.classList.replace('text-black', 'text-zinc-400');
+                chargerDashboard();
+            }
         }
 
+        function toggleModal() {
+            document.getElementById('modal-organiser').classList.toggle('hidden');
+        }
+
+        // --- 4. CREATION ET INSCRIPTION ---
         async function creerPartie() {
             const sport = document.getElementById('input-sport').value;
             const date = document.getElementById('input-date').value;
@@ -92,55 +126,146 @@
             const btn = document.getElementById('btn-creer');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création...';
 
-            const { data, error } = await client.from('games').insert([
+            const { error } = await client.from('games').insert([
                 { host_id: currentUser.id, activity_type: sport, location_name: lieu, game_time: gameTime, players_needed: 3, notes: notesData }
             ]);
 
-            btn.innerHTML = 'Créer la partie';
+            btn.innerHTML = 'Valider le match';
             if (error) {
                 alert("❌ Erreur : " + error.message);
             } else {
                 toggleModal();
                 document.getElementById('form-creation').reset();
-                chargerParties(); 
+                switchView('dashboard'); // On amène l'utilisateur sur son tableau de bord !
             }
         }
 
-        // --- 4. REJOINDRE UNE PARTIE ---
         async function rejoindrePartie(gameId, btnElement) {
             if (!currentUser) return;
-
-            btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+            btnElement.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
             btnElement.disabled = true;
 
-            const { data, error } = await client.from('game_participants').insert([
-                { game_id: gameId, player_id: currentUser.id }
-            ]);
+            const { error } = await client.from('game_participants').insert([{ game_id: gameId, player_id: currentUser.id }]);
 
             if (error) {
                 if (error.code === '23505' || error.message.includes('unique')) {
-                    btnElement.innerHTML = 'Déjà demandé';
-                    btnElement.className = 'w-full bg-zinc-200 border border-zinc-400 text-zinc-600 font-bold py-3.5 rounded-lg cursor-not-allowed uppercase text-sm tracking-wider';
+                    btnElement.innerHTML = '<i class="fas fa-check mr-2"></i> Déjà demandé';
+                    btnElement.className = 'w-full bg-zinc-100 text-zinc-400 font-bold py-4 rounded-xl cursor-not-allowed uppercase text-xs tracking-widest transition-all';
                 } else {
                     alert("❌ Erreur : " + error.message);
                     btnElement.innerHTML = 'Demander à rejoindre';
                     btnElement.disabled = false;
                 }
             } else {
-                btnElement.innerHTML = '✅ Demande envoyée';
-                btnElement.className = 'w-full bg-white border-2 border-black text-black font-bold py-3.5 rounded-lg cursor-not-allowed uppercase text-sm tracking-wider';
+                btnElement.innerHTML = '<i class="fas fa-check-circle mr-2 text-lg"></i> Demande envoyée';
+                btnElement.className = 'w-full bg-white border-2 border-black text-black font-black py-3.5 rounded-xl cursor-not-allowed uppercase text-xs tracking-widest shadow-sm transition-all';
             }
         }
 
-        // --- 5. CHARGEMENT DES PARTIES EN DIRECT ---
+        // --- 5. GESTION DU TABLEAU DE BORD (HÔTE) ---
+        async function gererCandidature(participantId, action, btnElement) {
+            btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const status = action === 'accepter' ? 'accepted' : 'rejected';
+            
+            const { error } = await client.from('game_participants').update({ status: status }).eq('id', participantId);
+            
+            if(error) {
+                alert("Erreur: " + error.message);
+                chargerDashboard();
+            } else {
+                chargerDashboard(); // Recharge la liste pour mettre à jour l'affichage
+            }
+        }
+
+        async function chargerDashboard() {
+            const container = document.getElementById('dashboard-content');
+            container.innerHTML = '<div class="text-center text-black py-12"><i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i></div>';
+
+            // On récupère les parties de l'utilisateur ET les candidatures associées (via game_participants et profiles)
+            const { data, error } = await client
+                .from('games')
+                .select(`
+                    *,
+                    game_participants (
+                        id,
+                        status,
+                        profiles ( username, reliability_score )
+                    )
+                `)
+                .eq('host_id', currentUser.id)
+                .order('game_time', { ascending: true });
+
+            if (error) return container.innerHTML = `<p class="text-red-600 font-bold p-4 border-2 border-red-200 bg-red-50 rounded-xl">Erreur: ${error.message}</p>`;
+            if (!data || data.length === 0) return container.innerHTML = '<div class="border-2 border-dashed border-zinc-300 rounded-2xl p-10 text-center text-zinc-500 font-bold bg-white/50">Vous n\'avez organisé aucun match pour le moment.</div>';
+
+            container.innerHTML = ''; 
+            
+            data.forEach(partie => {
+                const dateObj = new Date(partie.game_time);
+                const dateStr = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                
+                let candidatsHTML = '';
+                
+                // Si des joueurs ont demandé à rejoindre
+                if(partie.game_participants && partie.game_participants.length > 0) {
+                    partie.game_participants.forEach(p => {
+                        const pseudo = p.profiles?.username || "Joueur Anonyme";
+                        const score = p.profiles?.reliability_score || 100;
+                        
+                        if(p.status === 'joined' || p.status === 'pending') {
+                            candidatsHTML += `
+                                <div class="flex items-center justify-between bg-zinc-50 p-3 rounded-xl border border-zinc-200 mt-2">
+                                    <div>
+                                        <p class="font-bold text-sm truncate w-32">${pseudo}</p>
+                                        <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Fiabilité: ${score}%</p>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="gererCandidature('${p.id}', 'refuser', this)" class="w-10 h-10 bg-white border border-zinc-200 text-red-500 rounded-lg shadow-sm hover:bg-red-50 active:scale-90 transition"><i class="fas fa-times"></i></button>
+                                        <button onclick="gererCandidature('${p.id}', 'accepter', this)" class="w-10 h-10 bg-black text-white rounded-lg shadow-md active:scale-90 transition"><i class="fas fa-check"></i></button>
+                                    </div>
+                                </div>
+                            `;
+                        } else if(p.status === 'accepted') {
+                            candidatsHTML += `
+                                <div class="flex items-center justify-between bg-emerald-50 p-3 rounded-xl border border-emerald-200 mt-2">
+                                    <div>
+                                        <p class="font-bold text-sm text-emerald-900">${pseudo}</p>
+                                    </div>
+                                    <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-100 px-2 py-1 rounded">Accepté</span>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+
+                if(candidatsHTML === '') candidatsHTML = '<p class="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-4 text-center">Aucune demande</p>';
+
+                const cardHTML = `
+                    <div class="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm relative mb-5">
+                        <div class="flex justify-between items-start mb-4 border-b border-zinc-100 pb-4">
+                            <div>
+                                <h3 class="font-black text-lg text-zinc-900 uppercase tracking-tight">${partie.activity_type}</h3>
+                                <p class="text-zinc-500 text-xs font-bold mt-1"><i class="far fa-clock mr-1"></i> ${dateStr}</p>
+                            </div>
+                            <div class="bg-orange-100 text-orange-600 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-widest">
+                                Manque ${partie.players_needed}
+                            </div>
+                        </div>
+                        <h4 class="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Candidatures :</h4>
+                        ${candidatsHTML}
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', cardHTML);
+            });
+        }
+
+        // --- 6. CHARGEMENT DES PARTIES EN DIRECT (FEED) ---
         async function chargerParties() {
             const feed = document.getElementById('feed-parties');
             feed.innerHTML = '<div class="text-center text-black py-12"><i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i></div>';
-
             const { data, error } = await client.from('games').select('*').order('game_time', { ascending: true });
-
             if (error) return feed.innerHTML = `<p class="text-red-600 font-bold p-4 border-2 border-red-200 bg-red-50 rounded-xl">Erreur: ${error.message}</p>`;
-            if (!data || data.length === 0) return feed.innerHTML = '<div class="border-2 border-dashed border-zinc-300 rounded-xl p-10 text-center text-zinc-500 font-bold bg-white/50">Aucune partie prévue.</div>';
+            if (!data || data.length === 0) return feed.innerHTML = '<div class="border-2 border-dashed border-zinc-300 rounded-2xl p-10 text-center text-zinc-500 font-bold bg-white/50">Aucune partie prévue.</div>';
 
             feed.innerHTML = ''; 
             data.forEach(partie => {
@@ -155,12 +280,12 @@
                 const dateStr = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
 
                 const cardHTML = `
-                    <div class="bg-white rounded-xl p-5 border-2 border-zinc-200 hover:border-black transition duration-200 relative mb-5 shadow-sm">
-                        <div class="absolute top-0 right-0 bg-orange-500 text-white text-[10px] uppercase tracking-wider font-extrabold px-3 py-1.5 rounded-bl-lg rounded-tr-lg">
+                    <div class="bg-white rounded-2xl p-5 border border-zinc-200 hover:border-black transition-colors duration-300 relative mb-5 shadow-sm">
+                        <div class="absolute -top-3 right-4 bg-orange-500 text-white text-[10px] uppercase tracking-widest font-black px-4 py-1.5 rounded-full shadow-md shadow-orange-500/40 border-2 border-white">
                             Il manque ${partie.players_needed} joueurs
                         </div>
-                        <div class="flex items-center gap-4 mb-5 mt-1">
-                            <div class="w-14 h-14 bg-zinc-50 rounded-xl flex items-center justify-center text-2xl border-2 border-zinc-100 text-black shadow-inner">
+                        <div class="flex items-center gap-4 mb-5 mt-2">
+                            <div class="w-14 h-14 bg-zinc-50 rounded-xl flex items-center justify-center text-2xl border border-zinc-100 text-black shadow-inner">
                                 ${emoji}
                             </div>
                             <div>
@@ -168,11 +293,11 @@
                                 <p class="text-zinc-500 text-sm font-bold mt-0.5"><i class="far fa-clock mr-1"></i> ${dateStr} à ${heureStr}</p>
                             </div>
                         </div>
-                        <div class="flex items-center text-sm text-zinc-700 mb-5 bg-zinc-50 p-3 rounded-lg border border-zinc-200 font-bold">
+                        <div class="flex items-center text-sm text-zinc-700 mb-5 bg-zinc-50 p-3 rounded-lg border border-zinc-100 font-bold">
                             <i class="fas fa-map-marker-alt w-6 text-center text-zinc-400 mr-2 text-base"></i> 
-                            <span>${partie.location_name}</span>
+                            <span class="truncate">${partie.location_name}</span>
                         </div>
-                        <button onclick="rejoindrePartie('${partie.id}', this)" class="w-full bg-black hover:bg-zinc-800 text-white font-extrabold py-3.5 rounded-lg transition duration-150 uppercase text-sm tracking-wider">
+                        <button onclick="rejoindrePartie('${partie.id}', this)" class="w-full bg-black hover:bg-zinc-800 text-white font-extrabold py-4 rounded-xl transition-all duration-200 active:scale-95 uppercase text-xs tracking-widest shadow-lg shadow-black/10">
                             Demander à rejoindre
                         </button>
                     </div>
@@ -183,126 +308,106 @@
     </script>
 
     <!-- ÉCRAN D'AUTHENTIFICATION -->
-    <div id="screen-auth" class="fixed inset-0 bg-zinc-100 z-50 flex flex-col justify-center px-6">
-        <div class="max-w-md mx-auto w-full bg-white p-8 rounded-2xl border-2 border-zinc-200 shadow-lg">
+    <div id="screen-auth" class="hidden fixed inset-0 bg-zinc-100 z-50 flex flex-col justify-center px-6 transition-opacity duration-300">
+        <div class="max-w-md mx-auto w-full bg-white p-8 rounded-3xl border border-zinc-200 shadow-2xl">
             <div class="text-center mb-8">
                 <h1 class="text-5xl font-black text-black tracking-tighter mb-3 uppercase">PlayGrid<span class="text-orange-500">.</span></h1>
-                <p class="text-zinc-500 font-bold">Trouvez vos partenaires. Lancez la partie.</p>
+                <p class="text-zinc-500 font-bold text-sm uppercase tracking-wider">Trouvez vos joueurs.</p>
             </div>
             
             <div class="space-y-5">
                 <div>
-                    <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Email</label>
-                    <input type="email" id="auth-email" placeholder="joueur@email.com" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-bold focus:outline-none focus:border-black transition">
+                    <label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Email</label>
+                    <input type="email" id="auth-email" placeholder="joueur@email.com" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-black font-bold focus:outline-none focus:border-black transition-all">
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Mot de passe</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-bold focus:outline-none focus:border-black transition">
+                    <label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Mot de passe</label>
+                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-black font-bold focus:outline-none focus:border-black transition-all">
                 </div>
                 
                 <div class="pt-4 space-y-3">
-                    <button id="btn-login" onclick="seConnecter()" class="w-full bg-black hover:bg-zinc-800 text-white font-extrabold text-lg py-4 rounded-xl transition uppercase tracking-wider">
-                        Se connecter
-                    </button>
-                    <button id="btn-register" onclick="creerCompte()" class="w-full bg-white border-2 border-black hover:bg-zinc-50 text-black font-extrabold text-lg py-4 rounded-xl transition uppercase tracking-wider">
-                        Créer un compte
-                    </button>
+                    <button id="btn-login" onclick="seConnecter()" class="w-full bg-black text-white font-black text-sm py-4 rounded-xl active:scale-95 transition-all uppercase tracking-widest shadow-xl shadow-black/10">Se connecter</button>
+                    <button id="btn-register" onclick="creerCompte()" class="w-full bg-white border-2 border-zinc-200 text-black font-black text-sm py-4 rounded-xl active:scale-95 transition-all uppercase tracking-widest">Créer un compte</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- En-tête de l'application -->
-    <header class="bg-white border-b-2 border-zinc-200 p-4 sticky top-0 z-40 shadow-sm">
+    <!-- En-tête -->
+    <header class="bg-zinc-100/80 backdrop-blur-md p-4 sticky top-0 z-40">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <h1 class="text-2xl font-black text-black tracking-tighter uppercase">PlayGrid<span class="text-orange-500">.</span></h1>
-            <button onclick="seDeconnecter()" class="w-10 h-10 bg-zinc-50 rounded-lg flex items-center justify-center border-2 border-zinc-200 hover:border-black text-zinc-700 transition" title="Se déconnecter">
+            <button onclick="seDeconnecter()" class="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-zinc-200 shadow-sm active:scale-90 transition-all text-zinc-400 hover:text-black">
                 <i class="fas fa-sign-out-alt"></i>
             </button>
         </div>
     </header>
 
-    <!-- Contenu Principal -->
-    <main class="max-w-md mx-auto p-4 mt-2">
+    <!-- VUE 1 : LE FLUX D'ACTUALITÉ (FEED) -->
+    <main id="view-feed" class="max-w-md mx-auto p-4 mt-2 relative z-10">
         <div class="flex justify-between items-end mb-6">
             <div>
-                <h2 class="text-3xl font-black tracking-tighter text-black uppercase">À proximité</h2>
-                <p class="text-zinc-500 text-sm mt-1 font-extrabold">Casablanca & Environs</p>
+                <h2 class="text-4xl font-black tracking-tighter text-black uppercase">Flux</h2>
+                <p class="text-zinc-500 text-xs mt-1 font-extrabold uppercase tracking-widest">Casablanca & Environs</p>
             </div>
-            <button class="bg-white p-3 rounded-xl text-black border-2 border-zinc-200 hover:border-black hover:bg-zinc-50 transition shadow-sm"><i class="fas fa-filter text-lg"></i></button>
+            <button class="bg-white w-12 h-12 rounded-full flex items-center justify-center text-black border border-zinc-200 active:scale-90 transition-all shadow-sm"><i class="fas fa-filter"></i></button>
         </div>
 
-        <div class="flex gap-2.5 overflow-x-auto pb-4 mb-4 scrollbar-hide">
-            <button class="px-5 py-2.5 bg-black text-white font-extrabold rounded-lg whitespace-nowrap shadow-md uppercase tracking-wider text-sm">Tout</button>
-            <button class="px-5 py-2.5 bg-white text-zinc-700 font-extrabold rounded-lg whitespace-nowrap border-2 border-zinc-200 hover:border-black hover:text-black hover:bg-zinc-50 transition shadow-sm uppercase tracking-wider text-sm">🎾 Padel</button>
-            <button class="px-5 py-2.5 bg-white text-zinc-700 font-extrabold rounded-lg whitespace-nowrap border-2 border-zinc-200 hover:border-black hover:text-black hover:bg-zinc-50 transition shadow-sm uppercase tracking-wider text-sm">⚽ Football</button>
+        <div class="flex gap-3 overflow-x-auto pb-4 mb-2 scrollbar-hide">
+            <button class="px-6 py-3 bg-black text-white font-black rounded-full whitespace-nowrap shadow-md uppercase tracking-wider text-xs">Tout</button>
+            <button class="px-6 py-3 bg-white text-zinc-600 font-black rounded-full whitespace-nowrap border border-zinc-200 active:scale-95 uppercase tracking-wider text-xs">🎾 Padel</button>
+            <button class="px-6 py-3 bg-white text-zinc-600 font-black rounded-full whitespace-nowrap border border-zinc-200 active:scale-95 uppercase tracking-wider text-xs">⚽ Football</button>
         </div>
 
-        <div id="feed-parties" class="space-y-4 pb-12"></div>
+        <div id="feed-parties" class="space-y-2 pb-6"></div>
     </main>
 
-    <!-- MODAL "ORGANISER UNE PARTIE" -->
-    <div id="modal-organiser" class="hidden fixed inset-0 bg-zinc-900/60 z-50 flex flex-col justify-end backdrop-blur-sm transition-all">
-        <div class="bg-white w-full max-w-md mx-auto rounded-t-2xl p-6 h-[85vh] overflow-y-auto border-t-2 border-zinc-200 relative">
-            <button onclick="toggleModal()" class="absolute top-5 right-5 text-zinc-400 hover:text-black text-2xl w-8 h-8 bg-zinc-100 rounded-full flex items-center justify-center transition"><i class="fas fa-times"></i></button>
-            <h2 class="text-2xl font-black mb-6 text-black tracking-tighter uppercase">Nouveau Match</h2>
+    <!-- VUE 2 : LE TABLEAU DE BORD (MES MATCHS) -->
+    <main id="view-dashboard" class="hidden max-w-md mx-auto p-4 mt-2 relative z-10">
+        <div class="mb-6">
+            <h2 class="text-4xl font-black tracking-tighter text-black uppercase">Mes Matchs</h2>
+            <p class="text-zinc-500 text-xs mt-1 font-extrabold uppercase tracking-widest">Gérez vos candidatures</p>
+        </div>
+        
+        <div id="dashboard-content" class="space-y-2 pb-6">
+            <!-- Les parties organisées s'afficheront ici -->
+        </div>
+    </main>
+
+    <!-- Navigation Flottante -->
+    <div class="fixed bottom-6 inset-x-0 flex justify-center z-40 px-4 pointer-events-none">
+        <nav class="w-full max-w-sm bg-white/80 backdrop-blur-xl border border-white/40 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] rounded-3xl flex justify-around p-2 pointer-events-auto items-center">
             
-            <form id="form-creation" class="space-y-5">
-                <div>
-                    <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Activité</label>
-                    <select id="input-sport" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-extrabold focus:outline-none focus:border-black">
-                        <option value="Padel">🎾 Padel</option>
-                        <option value="Football">⚽ Football</option>
-                        <option value="Jeux de société">🎲 Jeux de société</option>
-                    </select>
-                </div>
+            <button onclick="switchView('feed')" id="nav-feed" class="text-black flex flex-col items-center p-2 w-20 active:scale-90 transition-all">
+                <i class="fas fa-layer-group text-xl mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Feed</span>
+            </button>
+            
+            <button onclick="toggleModal()" class="text-white bg-black w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-90 transition-all duration-200 -mt-8 border-4 border-white/50">
+                <i class="fas fa-plus text-xl"></i>
+            </button>
+            
+            <button onclick="switchView('dashboard')" id="nav-dash" class="text-zinc-400 hover:text-black flex flex-col items-center p-2 w-20 active:scale-90 transition-all">
+                <i class="fas fa-calendar-check text-xl mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Gérer</span>
+            </button>
 
-                <div class="flex gap-4">
-                    <div class="w-1/2">
-                        <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Date</label>
-                        <input type="date" id="input-date" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-extrabold focus:outline-none focus:border-black">
-                    </div>
-                    <div class="w-1/2">
-                        <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Heure</label>
-                        <input type="time" id="input-time" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-extrabold focus:outline-none focus:border-black">
-                    </div>
-                </div>
+        </nav>
+    </div>
 
-                <div>
-                    <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Lieu exact</label>
-                    <input type="text" id="input-lieu" placeholder="Ex: Oasis Club" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-extrabold mb-2 focus:outline-none focus:border-black">
-                    <input type="url" id="input-waze" placeholder="Lien Waze/Maps (Optionnel)" class="w-full bg-zinc-100/50 border-2 border-zinc-200 rounded-xl p-4 text-sm font-bold text-zinc-600 focus:outline-none focus:border-black">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Lien d'invitation WhatsApp</label>
-                    <input type="url" id="input-whatsapp" placeholder="https://chat.whatsapp.com/..." class="w-full bg-zinc-50 border-2 border-zinc-200 border-l-4 border-l-black rounded-xl p-4 text-black font-extrabold focus:outline-none focus:border-black">
-                </div>
-
-                <div class="bg-zinc-50 border-2 border-zinc-200 p-4 rounded-xl flex items-center justify-between mt-2">
-                    <div>
-                        <h4 class="font-extrabold text-black text-sm uppercase tracking-tight">Validation Manuelle</h4>
-                        <p class="text-xs text-zinc-500 mt-1 font-bold">Acceptez les profils avant de partager le lieu.</p>
-                    </div>
-                    <input type="checkbox" id="input-validation" class="w-5 h-5 accent-black border-zinc-300 rounded" checked>
-                </div>
-
-                <button type="button" id="btn-creer" onclick="creerPartie()" class="w-full bg-black hover:bg-zinc-800 text-white font-extrabold text-lg py-4 rounded-xl mt-6 transition uppercase tracking-wider">
-                    Valider le match
-                </button>
+    <!-- MODAL "ORGANISER" -->
+    <div id="modal-organiser" class="hidden fixed inset-0 bg-zinc-900/40 z-50 flex flex-col justify-end backdrop-blur-sm transition-all duration-300">
+        <div class="bg-white w-full max-w-md mx-auto rounded-t-[2rem] p-6 h-[85vh] overflow-y-auto shadow-2xl relative">
+            <button onclick="toggleModal()" class="absolute top-6 right-6 text-zinc-400 hover:text-black text-xl w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center active:scale-90 transition-all"><i class="fas fa-times"></i></button>
+            <h2 class="text-3xl font-black mb-8 text-black tracking-tighter uppercase mt-2">Nouveau<br>Match<span class="text-orange-500">.</span></h2>
+            <form id="form-creation" class="space-y-6">
+                <!-- Champs du formulaire (identiques à la version précédente) -->
+                <div><label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Activité</label><select id="input-sport" class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 text-black font-extrabold focus:outline-none focus:border-black"><option value="Padel">🎾 Padel</option><option value="Football">⚽ Football</option><option value="Jeux de société">🎲 Jeux de société</option></select></div>
+                <div class="flex gap-4"><div class="w-1/2"><label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Date</label><input type="date" id="input-date" class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 text-black font-extrabold focus:outline-none focus:border-black"></div><div class="w-1/2"><label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Heure</label><input type="time" id="input-time" class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 text-black font-extrabold focus:outline-none focus:border-black"></div></div>
+                <div><label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Lieu exact</label><input type="text" id="input-lieu" class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 text-black font-extrabold mb-2 focus:outline-none focus:border-black"><input type="url" id="input-waze" placeholder="Lien Waze/Maps (Optionnel)" class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 text-xs font-bold text-zinc-500 focus:outline-none focus:border-black"></div>
+                <div><label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Invitation WhatsApp</label><input type="url" id="input-whatsapp" placeholder="https://chat.whatsapp.com/..." class="w-full bg-zinc-50 border border-zinc-200 border-l-4 border-l-black rounded-2xl p-4 text-black font-extrabold focus:outline-none focus:border-black"></div>
+                <div class="bg-zinc-50 border border-zinc-200 p-5 rounded-2xl flex items-center justify-between mt-2"><div><h4 class="font-black text-black text-xs uppercase tracking-widest">Validation Manuelle</h4><p class="text-[10px] text-zinc-500 mt-1 font-bold uppercase tracking-wider">Acceptez les joueurs avant.</p></div><input type="checkbox" id="input-validation" class="w-6 h-6 accent-black border-zinc-300 rounded" checked></div>
+                <button type="button" id="btn-creer" onclick="creerPartie()" class="w-full bg-black text-white font-black text-sm py-5 rounded-2xl mt-4 active:scale-95 transition-all shadow-xl shadow-black/10 uppercase tracking-widest">Valider le match</button>
             </form>
         </div>
     </div>
-
-    <!-- Navigation -->
-    <nav class="fixed bottom-0 w-full bg-white border-t-2 border-zinc-200 pb-safe z-30 shadow-md">
-        <div class="max-w-md mx-auto flex justify-around p-2">
-            <button class="text-black flex flex-col items-center p-2 w-16"><i class="fas fa-layer-group text-xl mb-1"></i><span class="text-[10px] font-black uppercase tracking-widest">Feed</span></button>
-            <button onclick="toggleModal()" class="text-zinc-400 hover:text-black flex flex-col items-center p-2 w-16 transition">
-                <div class="bg-black hover:bg-zinc-800 text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-md transition"><i class="fas fa-plus text-xl"></i></div>
-            </button>
-            <button class="text-zinc-400 hover:text-black flex flex-col items-center p-2 w-16 transition"><i class="fas fa-comment-alt text-xl mb-1"></i><span class="text-[10px] font-black uppercase tracking-widest">Chat</span></button>
-        </div>
-    </nav>
 </body>
 </html>
