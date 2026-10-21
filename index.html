@@ -3,52 +3,533 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PlayGrid - Matchmaking</title>
+    <title>LA3BIN - Matchmaking Sport & Jeux</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f4f4f5; color: #09090b; -webkit-tap-highlight-color: transparent; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
+        
+        .input-premium {
+            width: 100%; background-color: #f8fafc; border: 1.5px solid #e4e4e7; border-radius: 0.875rem;
+            padding: 0.7rem 0.9rem; color: #09090b; font-weight: 700; font-size: 0.8125rem; outline: none; transition: all 0.2s ease;
+        }
+        .input-premium:focus { border-color: #09090b; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+
+        /* Animation Logo Fixe Verticale (? -> . -> !) */
+        .logo-container { display: inline-flex; align-items: baseline; }
+        .logo-punct-wrapper {
+            display: inline-flex; justify-content: center; width: 0.68em; margin-left: 0.08em;
+            overflow: hidden; height: 1.1em; vertical-align: baseline;
+        }
+        .logo-punct {
+            display: inline-block;
+            transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.24s ease, color 0.24s ease;
+        }
+        .slide-out { transform: translateY(85%); opacity: 0; }
+        .slide-in { transform: translateY(-85%); opacity: 0; }
+
+        .bento-panel {
+            background-color: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        /* Mode simulateur mobile sur PC */
+        body.mobile-sim-mode #main-grid {
+            max-width: 430px !important;
+            grid-template-columns: 1fr !important;
+            margin: 1rem auto !important;
+            background: #ffffff;
+            border: 8px solid #18181b;
+            border-radius: 2.75rem;
+            min-height: 820px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding-bottom: 5.5rem !important;
+        }
+        body.mobile-sim-mode #mobile-bottom-nav {
+            display: flex !important;
+        }
     </style>
 </head>
-<body class="antialiased pb-32 selection:bg-orange-500 selection:text-white bg-zinc-100 relative">
+<body class="antialiased pb-28 lg:pb-10 bg-zinc-100 selection:bg-zinc-900 selection:text-white overflow-x-hidden">
 
     <!-- SPLASH SCREEN -->
-    <div id="splash-screen" class="fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center transition-opacity duration-500">
-        <h1 class="text-6xl font-black text-black tracking-tighter uppercase animate-pulse">PlayGrid<span class="text-orange-500">.</span></h1>
+    <div id="splash-screen" class="fixed inset-0 bg-white z-[80] flex flex-col items-center justify-center transition-opacity duration-500">
+        <h1 class="text-6xl font-black text-black tracking-tighter uppercase logo-container">
+            LA3BIN<span class="logo-punct-wrapper"><span class="logo-punct" style="color: #e05a47;">?</span></span>
+        </h1>
+        <p class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-zinc-400 mt-3">Casablanca • Matchmaking</p>
     </div>
 
     <script>
+        // --- 0. ANIMATION LOGO (? Rouge doux -> . Bleu doux -> ! Vert doux) ---
+        const PUNCT_STATES = [
+            { char: '?', color: '#e05a47' },
+            { char: '.', color: '#457b9d' },
+            { char: '!', color: '#2a9d8f' }
+        ];
+        let punctIndex = 0;
+
+        setInterval(() => {
+            punctIndex = (punctIndex + 1) % PUNCT_STATES.length;
+            const nextState = PUNCT_STATES[punctIndex];
+
+            document.querySelectorAll('.logo-punct').forEach(el => {
+                el.classList.add('slide-out');
+                setTimeout(() => {
+                    el.innerText = nextState.char;
+                    el.style.color = nextState.color;
+                    el.style.transition = 'none';
+                    el.classList.remove('slide-out');
+                    el.classList.add('slide-in');
+                    setTimeout(() => {
+                        el.style.transition = 'transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.24s ease, color 0.24s ease';
+                        el.classList.remove('slide-in');
+                    }, 30);
+                }, 220);
+            });
+        }, 850);
+
         // --- 1. CONNEXION SUPABASE ---
-        const SUPABASE_URL = 'https://elrimadnclaawodmrsam.supabase.co/';
+        const SUPABASE_URL = 'https://elrimadnclaawodmrsam.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_uW0oG_fEhbn5IKlhnplj7g_XQL-MbJW';
         const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = null;
+        let allGamesCache = [];
+        let activeSportFilter = 'ALL';
+        let filterTodayOnly = false;
+        let filterAroundMe = false;
+        let isMobileSim = false;
 
-        // --- 2. GESTION DE L'AUTHENTIFICATION ---
+        // Position GPS par défaut (Centre Casablanca - Maarif) avant activation du GPS réel
+        let userCoords = { lat: 33.5786, lng: -7.6369, isRealGps: false };
+
+        // Galerie d'avatars prédéfinis
+        const AVATAR_PRESETS = [
+            "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Atlas&backgroundColor=e05a47",
+            "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Anfa&backgroundColor=457b9d",
+            "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=PadelKing&backgroundColor=2a9d8f",
+            "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=CasaFoot&backgroundColor=d4a338",
+            "https://api.dicebear.com/7.x/fun-emoji/svg?seed=Striker",
+            "https://api.dicebear.com/7.x/fun-emoji/svg?seed=MVP"
+        ];
+
+        // --- 2. COULEURS DE FOND PAR ACTIVITÉ & COORDONNÉES GPS RÉELLES ---
+        const SPORT_CONFIG = {
+            'Football': {
+                cardBg: 'bg-[#eaf6f4]', cardBorder: 'border-[#2a9d8f]/35', iconBg: 'bg-white',
+                text: 'text-[#1f7a6f]', badgeBg: 'bg-[#2a9d8f]',
+                icon: 'fa-futbol', label: 'Football',
+                subGames: [
+                    { name: 'Foot 5v5 Urbain', defaultPlayers: 3 },
+                    { name: 'Foot 7v7 Demi-Terrain', defaultPlayers: 5 },
+                    { name: 'Foot 11v11 Grand Terrain', defaultPlayers: 8 }
+                ]
+            },
+            'Padel': {
+                cardBg: 'bg-[#fdf8ea]', cardBorder: 'border-[#d4a338]/40', iconBg: 'bg-white',
+                text: 'text-[#a3781b]', badgeBg: 'bg-[#d4a338]',
+                icon: 'fa-table-tennis-paddle-ball', label: 'Padel',
+                subGames: [
+                    { name: 'Padel Double (2v2)', defaultPlayers: 2 },
+                    { name: 'Padel Tournoi Americano', defaultPlayers: 3 },
+                    { name: 'Padel Entraînement', defaultPlayers: 1 }
+                ]
+            },
+            'Basketball': {
+                cardBg: 'bg-[#fdf0ec]', cardBorder: 'border-[#e06d47]/35', iconBg: 'bg-white',
+                text: 'text-[#b84a27]', badgeBg: 'bg-[#e06d47]',
+                icon: 'fa-basketball', label: 'Basketball',
+                subGames: [
+                    { name: 'Basket 3x3 Half-Court', defaultPlayers: 2 },
+                    { name: 'Basket 5x5 Full-Court', defaultPlayers: 4 }
+                ]
+            },
+            'Jeux de société': {
+                cardBg: 'bg-[#eef4f8]', cardBorder: 'border-[#457b9d]/35', iconBg: 'bg-white',
+                text: 'text-[#2c5875]', badgeBg: 'bg-[#457b9d]',
+                icon: 'fa-chess-knight', label: 'Jeux & Cartes',
+                subGames: [
+                    { name: 'Catan / Stratégie', defaultPlayers: 2 },
+                    { name: 'Soirée Poker Holdem', defaultPlayers: 4 },
+                    { name: 'Loup-Garou / Mafia', defaultPlayers: 5 },
+                    { name: 'Uno / Rami / Ronda', defaultPlayers: 2 }
+                ]
+            }
+        };
+
+        // Vraies coordonnées GPS des clubs de Casablanca
+        const CLUBS_DB = [
+            { name: "Oasis Padel Club", sport: "Padel", quartier: "Oasis", lat: 33.5542, lng: -7.6321, partner: true },
+            { name: "CAFC Padel", sport: "Padel", quartier: "Anfa", lat: 33.5684, lng: -7.6492, partner: true },
+            { name: "Padel Factory Bouskoura", sport: "Padel", quartier: "Bouskoura", lat: 33.4682, lng: -7.6489, partner: false },
+            { name: "City Club Padel", sport: "Padel", quartier: "Maarif", lat: 33.5750, lng: -7.6310, partner: false },
+            { name: "City Foot 5", sport: "Football", quartier: "Maarif", lat: 33.5786, lng: -7.6369, partner: true },
+            { name: "Green Sports Park", sport: "Football", quartier: "Bouskoura", lat: 33.4795, lng: -7.6390, partner: true },
+            { name: "Complexe Mohamed V", sport: "Football", quartier: "Maarif", lat: 33.5829, lng: -7.6465, partner: false },
+            { name: "Anfa Park Hoop Court", sport: "Basketball", quartier: "Anfa", lat: 33.5658, lng: -7.6625, partner: false },
+            { name: "Corniche Ain Diab Court", sport: "Basketball", quartier: "Ain Diab", lat: 33.5952, lng: -7.6745, partner: false },
+            { name: "Les Maîtres du Jeu Lounge", sport: "Jeux de société", quartier: "Maarif", lat: 33.5810, lng: -7.6340, partner: true },
+            { name: "Café Ludique Gauthier", sport: "Jeux de société", quartier: "Gauthier", lat: 33.5885, lng: -7.6324, partner: false },
+            { name: "Chez l'organisateur", sport: "Jeux de société", quartier: "Casablanca", lat: 33.5731, lng: -7.6298, partner: false }
+        ];
+
+        // --- 3. CALCUL GPS TEMPS RÉEL (Formule de Haversine) ---
+        function getDistanceKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return Math.round((R * c) * 10) / 10;
+        }
+
+        function calculerDistanceClub(locationName) {
+            const club = CLUBS_DB.find(c => c.name.toLowerCase() === (locationName || '').toLowerCase());
+            if (!club) return 2.4;
+            return getDistanceKm(userCoords.lat, userCoords.lng, club.lat, club.lng);
+        }
+
+        function activerGpsTempsReel(activerFiltreProche = false) {
+            const statusEl = document.getElementById('gps-status-badge');
+            if (!navigator.geolocation) {
+                alert("Votre navigateur ne supporte pas la géolocalisation.");
+                return;
+            }
+            if (statusEl) statusEl.innerText = "Calcul GPS...";
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude, isRealGps: true };
+                    if (statusEl) {
+                        statusEl.innerHTML = '<i class="fas fa-satellite-dish mr-1"></i> GPS Temps Réel Actif';
+                        statusEl.className = 'text-[9px] font-extrabold text-white bg-[#2a9d8f] px-2 py-0.5 rounded';
+                    }
+                    if (activerFiltreProche && !filterAroundMe) toggleAroundMeFilter();
+                    afficherRadarUrgences();
+                    afficherFeedFiltre();
+                    renderLieux();
+                },
+                () => {
+                    if (statusEl) statusEl.innerText = "Position Maarif (Défaut)";
+                    if (activerFiltreProche) toggleAroundMeFilter();
+                },
+                { enableHighAccuracy: true, timeout: 6000 }
+            );
+        }
+
+        // --- 4. GESTION DU PROFIL, AVATARS & NIVEAUX PAR JEU ---
+        function getLocalProfile() {
+            const raw = localStorage.getItem('la3bin_profile_v3');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (!parsed.skills) {
+                    parsed.skills = { 'Football': 'Amateur', 'Padel': 'Amateur', 'Basketball': 'Débutant', 'Jeux de société': 'Compétiteur' };
+                }
+                return parsed;
+            }
+            return {
+                nom: 'EL JAMALI',
+                prenom: 'Hicham',
+                ageGroup: '18-35',
+                cinNumber: '',
+                cinVerified: false,
+                mvpCount: 3,
+                avatarUrl: AVATAR_PRESETS[0],
+                quartier: 'Maarif / Anfa',
+                skills: {
+                    'Football': 'Amateur',
+                    'Padel': 'Amateur',
+                    'Basketball': 'Débutant',
+                    'Jeux de société': 'Compétiteur'
+                }
+            };
+        }
+
+        function choisirAvatarPreset(url) {
+            document.getElementById('prof-avatar').value = url;
+            document.getElementById('prof-avatar-preview').src = url;
+            document.getElementById('header-avatar').src = url;
+            document.querySelectorAll('.avatar-preset-btn').forEach(btn => {
+                btn.classList.toggle('ring-2', btn.dataset.url === url);
+                btn.classList.toggle('ring-black', btn.dataset.url === url);
+            });
+        }
+
+        function uploaderPhotoLocale(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                choisirAvatarPreset(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function setSkillLevel(sport, level) {
+            const prof = getLocalProfile();
+            prof.skills[sport] = level;
+            localStorage.setItem('la3bin_profile_v3', JSON.stringify(prof));
+            renderSkillSelectors(prof.skills);
+        }
+
+        function renderSkillSelectors(skills) {
+            const container = document.getElementById('skills-selector-box');
+            if (!container) return;
+            container.innerHTML = '';
+            const levels = ['Débutant', 'Amateur', 'Compétiteur'];
+            Object.keys(SPORT_CONFIG).forEach(sport => {
+                const cfg = SPORT_CONFIG[sport];
+                const currentLevel = skills[sport] || 'Amateur';
+                let btns = '';
+                levels.forEach(lvl => {
+                    const active = currentLevel === lvl;
+                    btns += `<button type="button" onclick="setSkillLevel('${sport}', '${lvl}')" class="flex-1 py-1.5 rounded-lg text-[10px] font-extrabold uppercase transition ${active ? 'bg-zinc-900 text-white shadow-sm' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}">${lvl}</button>`;
+                });
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="bg-zinc-50/80 p-2.5 rounded-xl border border-zinc-200/80">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[11px] font-extrabold text-zinc-800"><i class="fas ${cfg.icon} ${cfg.text} mr-1.5"></i>${cfg.label}</span>
+                            <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded ${cfg.cardBg} ${cfg.text}">${currentLevel}</span>
+                        </div>
+                        <div class="flex gap-1">${btns}</div>
+                    </div>
+                `);
+            });
+        }
+
+        function saveLocalProfile() {
+            const current = getLocalProfile();
+            const nom = document.getElementById('prof-nom').value.trim() || 'EL JAMALI';
+            const prenom = document.getElementById('prof-prenom').value.trim() || 'Hicham';
+            const avatarUrl = document.getElementById('prof-avatar').value.trim() || AVATAR_PRESETS[0];
+
+            const prof = {
+                ...current,
+                nom,
+                prenom,
+                ageGroup: document.getElementById('prof-age').value,
+                cinNumber: document.getElementById('prof-cin').value.trim(),
+                cinVerified: document.getElementById('prof-cin').value.trim().length >= 5,
+                avatarUrl,
+                quartier: document.getElementById('prof-quartier').value
+            };
+            localStorage.setItem('la3bin_profile_v3', JSON.stringify(prof));
+            if (currentUser) {
+                client.from('profiles').upsert({
+                    id: currentUser.id,
+                    username: `${prof.prenom} ${prof.nom}`,
+                    avatar_url: prof.avatarUrl
+                });
+            }
+            afficherProfilUI();
+            alert("✅ Mon Compte (Avatar, Niveaux & CIN) enregistré !");
+        }
+
+        function afficherProfilUI() {
+            const prof = getLocalProfile();
+            const shortId = currentUser ? '#LA3-' + currentUser.id.substring(0, 4).toUpperCase() : '#LA3-PRO1';
+            
+            document.getElementById('prof-id-badge').innerText = shortId;
+            document.getElementById('prof-nom').value = prof.nom;
+            document.getElementById('prof-prenom').value = prof.prenom;
+            document.getElementById('prof-age').value = prof.ageGroup;
+            document.getElementById('prof-cin').value = prof.cinNumber;
+            document.getElementById('prof-avatar').value = prof.avatarUrl;
+            document.getElementById('prof-quartier').value = prof.quartier;
+            document.getElementById('header-avatar').src = prof.avatarUrl;
+            document.getElementById('prof-avatar-preview').src = prof.avatarUrl;
+            document.getElementById('prof-mvp-count').innerText = prof.mvpCount;
+
+            // Galerie d'avatars
+            const gal = document.getElementById('avatar-presets-grid');
+            if (gal) {
+                gal.innerHTML = '';
+                AVATAR_PRESETS.forEach(url => {
+                    const isSel = prof.avatarUrl === url;
+                    gal.insertAdjacentHTML('beforeend', `
+                        <button type="button" data-url="${url}" onclick="choisirAvatarPreset('${url}')" class="avatar-preset-btn w-10 h-10 rounded-xl overflow-hidden border border-zinc-200 hover:scale-105 transition ${isSel ? 'ring-2 ring-black' : ''}">
+                            <img src="${url}" class="w-full h-full object-cover" alt="Avatar">
+                        </button>
+                    `);
+                });
+            }
+
+            renderSkillSelectors(prof.skills);
+
+            const cinBadge = document.getElementById('cin-status-badge');
+            if (prof.cinVerified) {
+                cinBadge.innerHTML = '<i class="fas fa-check-circle mr-1"></i> CIN Vérifiée';
+                cinBadge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200';
+            } else {
+                cinBadge.innerHTML = '<i class="fas fa-clock mr-1"></i> CIN Non Vérifiée';
+                cinBadge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-amber-50 text-amber-700 border border-amber-200';
+            }
+        }
+
+        // --- 5. SIMULATEUR MOBILE SUR PC ---
+        function toggleMobileSimulator() {
+            isMobileSim = !isMobileSim;
+            document.body.classList.toggle('mobile-sim-mode', isMobileSim);
+            const btn = document.getElementById('btn-sim-mobile');
+            if (isMobileSim) {
+                btn.innerHTML = '<i class="fas fa-desktop mr-1.5"></i> Vue PC (4 Colonnes)';
+                btn.className = 'hidden lg:flex items-center bg-[#e05a47] text-white text-xs font-extrabold uppercase tracking-wider px-3.5 py-2 rounded-xl transition';
+                switchMobileTab('feed');
+            } else {
+                btn.innerHTML = '<i class="fas fa-mobile-screen-button mr-1.5"></i> Vue Mobile';
+                btn.className = 'hidden lg:flex items-center bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-extrabold uppercase tracking-wider px-3.5 py-2 rounded-xl transition';
+                ['panel-radar', 'panel-feed', 'panel-manage', 'panel-account'].forEach(p => {
+                    const el = document.getElementById(p);
+                    el.classList.remove('hidden');
+                });
+            }
+        }
+
+        // --- 6. MENUS DÉROULANTS & LIAISON LIEU <-> SPORT ---
+        function toggleCustomDropdown(id, forceOpen = false) {
+            const target = document.getElementById(id);
+            const isHidden = target.classList.contains('hidden');
+            fermerDropdowns(); 
+            if (isHidden || forceOpen) target.classList.remove('hidden');
+        }
+
+        function fermerDropdowns() {
+            document.querySelectorAll('.custom-dropdown').forEach(el => el.classList.add('hidden'));
+        }
+
+        document.addEventListener('click', (e) => {
+            if(!e.target.closest('.custom-dropdown-container')) fermerDropdowns();
+        });
+
+        function selectSport(sportKey) {
+            const cfg = SPORT_CONFIG[sportKey];
+            document.getElementById('input-sport').value = sportKey;
+            const lbl = document.getElementById('label-sport');
+            lbl.innerHTML = `<i class="fas ${cfg.icon} ${cfg.text} mr-2"></i> ${cfg.label}`;
+            lbl.className = 'text-black font-extrabold';
+
+            const dropSub = document.getElementById('drop-subgame');
+            dropSub.innerHTML = '';
+            cfg.subGames.forEach((sg, idx) => {
+                if (idx === 0) selectSubGame(sg.name, sg.defaultPlayers);
+                dropSub.insertAdjacentHTML('beforeend', `
+                    <div onclick="selectSubGame('${sg.name}', ${sg.defaultPlayers})" class="px-3.5 py-2.5 hover:bg-zinc-100 rounded-xl cursor-pointer font-bold text-xs flex justify-between items-center">
+                        <span>${sg.name}</span>
+                        <span class="text-[10px] bg-zinc-200 px-2 py-0.5 rounded-md font-extrabold">${sg.defaultPlayers} j.</span>
+                    </div>
+                `);
+            });
+
+            renderLieux('', sportKey);
+            fermerDropdowns();
+        }
+
+        function selectSubGame(name, defaultPlayers) {
+            document.getElementById('input-subgame').value = name;
+            document.getElementById('label-subgame').innerText = name;
+            document.getElementById('label-subgame').className = 'text-black font-extrabold';
+            document.getElementById('input-players').value = defaultPlayers;
+            fermerDropdowns();
+        }
+
+        function renderLieux(textFilter = "", sportFilter = null) {
+            const currentSport = sportFilter || document.getElementById('input-sport').value;
+            const drop = document.getElementById('drop-lieu-list');
+            if (!drop) return;
+            drop.innerHTML = "";
+            
+            const filtered = CLUBS_DB.filter(c => {
+                const matchText = c.name.toLowerCase().includes(textFilter.toLowerCase()) || c.quartier.toLowerCase().includes(textFilter.toLowerCase());
+                const matchSport = !currentSport || c.sport === currentSport;
+                return matchText && matchSport;
+            });
+
+            filtered.forEach(c => {
+                const cfg = SPORT_CONFIG[c.sport];
+                const dist = getDistanceKm(userCoords.lat, userCoords.lng, c.lat, c.lng);
+                drop.insertAdjacentHTML('beforeend', `
+                    <div onclick="selectLieu('${c.name}', '${c.sport}')" class="px-3.5 py-2.5 hover:bg-zinc-100 rounded-xl cursor-pointer font-bold text-xs transition flex justify-between items-center">
+                        <div>
+                            <i class="fas ${cfg.icon} ${cfg.text} mr-2"></i>${c.name}
+                            <span class="block text-[10px] text-zinc-400 font-semibold">${c.quartier} • ${dist} km</span>
+                        </div>
+                        ${c.partner ? '<span class="text-[9px] bg-zinc-900 text-white px-2 py-0.5 rounded font-bold uppercase">Partenaire</span>' : ''}
+                    </div>
+                `);
+            });
+            if(filtered.length === 0) {
+                drop.innerHTML = '<div class="px-3.5 py-2.5 text-zinc-400 text-xs font-bold">Lieu personnalisé accepté.</div>';
+            }
+        }
+
+        function selectLieu(clubName, clubSport) {
+            document.getElementById('input-lieu').value = clubName;
+            const currentSport = document.getElementById('input-sport').value;
+            if (clubSport && currentSport !== clubSport) {
+                selectSport(clubSport);
+            }
+            fermerDropdowns();
+        }
+
+        function selectCustom(type, value, label) {
+            document.getElementById(`input-${type}`).value = value;
+            const labelEl = document.getElementById(`label-${type}`);
+            if(labelEl) {
+                labelEl.innerText = label;
+                labelEl.classList.remove('text-zinc-400');
+                labelEl.classList.add('text-black');
+            }
+            fermerDropdowns();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropTime = document.getElementById('drop-time');
+            for (let h = 8; h <= 23; h++) {
+                const hour = h.toString().padStart(2, '0');
+                ['00', '30'].forEach(m => {
+                    dropTime.insertAdjacentHTML('beforeend', `<div onclick="selectCustom('time', '${hour}:${m}', '${hour}:${m}')" class="px-3.5 py-2 hover:bg-zinc-100 rounded-xl cursor-pointer font-bold text-xs">${hour}:${m}</div>`);
+                });
+            }
+            const dropDate = document.getElementById('drop-date');
+            const today = new Date();
+            for (let i = 0; i < 14; i++) {
+                const d = new Date(today); d.setDate(today.getDate() + i);
+                const valStr = d.toISOString().split('T')[0];
+                let lbl = i === 0 ? "Aujourd'hui" : i === 1 ? "Demain" : d.toLocaleDateString('fr-FR', { weekday:'short', day:'2-digit', month:'short' });
+                lbl = lbl.charAt(0).toUpperCase() + lbl.slice(1);
+                dropDate.insertAdjacentHTML('beforeend', `<div onclick="selectCustom('date', '${valStr}', '${lbl}')" class="px-3.5 py-2 hover:bg-zinc-100 rounded-xl cursor-pointer font-bold text-xs">${lbl}</div>`);
+            }
+            renderLieux();
+        });
+
+        // --- 7. AUTHENTIFICATION & NAVIGATION ---
         client.auth.onAuthStateChange((event, session) => {
             const authScreen = document.getElementById('screen-auth');
             const splashScreen = document.getElementById('splash-screen');
-
             if (session) {
                 currentUser = session.user;
                 authScreen.classList.add('opacity-0', 'pointer-events-none');
                 setTimeout(() => authScreen.classList.add('hidden'), 300);
-                switchView('feed'); 
+                afficherProfilUI();
+                rafraichirTout();
             } else {
                 currentUser = null;
                 authScreen.classList.remove('hidden');
                 setTimeout(() => authScreen.classList.remove('opacity-0', 'pointer-events-none'), 10);
             }
-
             if (splashScreen && !splashScreen.classList.contains('hidden')) {
                 setTimeout(() => {
                     splashScreen.classList.add('opacity-0');
                     setTimeout(() => splashScreen.classList.add('hidden'), 500);
-                }, 400);
+                }, 2100);
             }
         });
 
@@ -56,358 +537,750 @@
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
             if (!email || !password) return alert("Veuillez remplir l'email et le mot de passe.");
-            
-            const btn = document.getElementById('btn-register');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            const { error } = await client.auth.signUp({ email: email, password: password });
-            btn.innerHTML = 'Créer un compte';
-            if (error) alert("❌ Erreur : " + error.message);
+            document.getElementById('btn-register').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const { error } = await client.auth.signUp({ email, password });
+            document.getElementById('btn-register').innerHTML = 'Créer un compte';
+            if (error) alert("❌ " + error.message);
         }
 
         async function seConnecter() {
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
-            if (!email || !password) return alert("Veuillez remplir l'email et le mot de passe.");
-            
-            const btn = document.getElementById('btn-login');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            const { error } = await client.auth.signInWithPassword({ email: email, password: password });
-            btn.innerHTML = 'Se connecter';
+            if (!email || !password) return alert("Veuillez remplir vos identifiants.");
+            document.getElementById('btn-login').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const { error } = await client.auth.signInWithPassword({ email, password });
+            document.getElementById('btn-login').innerHTML = 'Se connecter';
             if (error) alert("❌ Identifiants incorrects.");
         }
 
         async function seDeconnecter() {
-            document.getElementById('splash-screen').classList.remove('hidden');
-            setTimeout(() => document.getElementById('splash-screen').classList.remove('opacity-0'), 10);
+            document.getElementById('splash-screen').classList.remove('hidden', 'opacity-0');
             await client.auth.signOut();
         }
 
-        // --- 3. NAVIGATION (FEED VS DASHBOARD) ---
-        function switchView(viewName) {
-            const viewFeed = document.getElementById('view-feed');
-            const viewDashboard = document.getElementById('view-dashboard');
-            const navFeed = document.getElementById('nav-feed');
-            const navDash = document.getElementById('nav-dash');
-
-            if(viewName === 'feed') {
-                viewFeed.classList.remove('hidden');
-                viewDashboard.classList.add('hidden');
-                navFeed.classList.replace('text-zinc-400', 'text-black');
-                navDash.classList.replace('text-black', 'text-zinc-400');
-                chargerParties();
-            } else {
-                viewFeed.classList.add('hidden');
-                viewDashboard.classList.remove('hidden');
-                navDash.classList.replace('text-zinc-400', 'text-black');
-                navFeed.classList.replace('text-black', 'text-zinc-400');
-                chargerDashboard();
-            }
+        function switchMobileTab(tab) {
+            const panels = ['panel-radar', 'panel-feed', 'panel-manage', 'panel-account'];
+            panels.forEach(p => {
+                const el = document.getElementById(p);
+                if (p === `panel-${tab}`) {
+                    el.classList.remove('hidden');
+                } else {
+                    if (isMobileSim) {
+                        el.classList.add('hidden');
+                    } else {
+                        el.classList.add('hidden', 'lg:block');
+                    }
+                }
+            });
+            ['radar', 'feed', 'manage', 'account'].forEach(t => {
+                const btn = document.getElementById(`mnav-${t}`);
+                if (btn) {
+                    btn.className = (t === tab) 
+                        ? 'text-black flex flex-col items-center p-2 w-16 active:scale-90 transition-all' 
+                        : 'text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90 transition-all';
+                }
+            });
         }
 
-        function toggleModal() {
-            document.getElementById('modal-organiser').classList.toggle('hidden');
+        function toggleModal() { document.getElementById('modal-organiser').classList.toggle('hidden'); }
+
+        // --- 8. CHAT PAR RDV & VOTE MVP ANONYME ---
+        let currentChatGameId = null;
+        function ouvrirChatRDV(gameId, titreMatch) {
+            currentChatGameId = gameId;
+            document.getElementById('chat-rdv-titre').innerText = titreMatch;
+            afficherMessagesRDV(gameId);
+            document.getElementById('modal-chat').classList.remove('translate-y-full');
         }
 
-        // --- 4. CREATION ET INSCRIPTION ---
+        function fermerChat() { document.getElementById('modal-chat').classList.add('translate-y-full'); }
+
+        function afficherMessagesRDV(gameId) {
+            const box = document.getElementById('chat-messages-box');
+            const raw = localStorage.getItem('la3bin_chat_' + gameId);
+            const msgs = raw ? JSON.parse(raw) : [
+                { sender: 'LA3BIN', text: 'Salon du RDV ouvert. Bon match à tous !', time: 'Info' }
+            ];
+            box.innerHTML = '';
+            msgs.forEach(m => {
+                const isMe = m.sender === 'Moi';
+                box.insertAdjacentHTML('beforeend', `
+                    <div class="${isMe ? 'self-end bg-zinc-900 text-white rounded-tr-none' : 'self-start bg-white border border-zinc-200 text-black rounded-tl-none'} p-3.5 rounded-2xl shadow-sm mb-3 max-w-[80%]">
+                        <p class="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">${m.sender}</p>
+                        <p class="text-xs font-semibold">${m.text}</p>
+                    </div>
+                `);
+            });
+        }
+
+        function envoyerMessageRDV() {
+            const inp = document.getElementById('chat-input-text');
+            const txt = inp.value.trim();
+            if (!txt || !currentChatGameId) return;
+            const key = 'la3bin_chat_' + currentChatGameId;
+            const msgs = JSON.parse(localStorage.getItem(key) || '[]');
+            msgs.push({ sender: 'Moi', text: txt, time: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) });
+            localStorage.setItem(key, JSON.stringify(msgs));
+            inp.value = '';
+            afficherMessagesRDV(currentChatGameId);
+        }
+
+        function voterMVPAnonyme(gameId, playerPseudo, btn) {
+            const voteKey = `mvp_voted_${gameId}`;
+            if (localStorage.getItem(voteKey)) return alert("🔒 Vote anonyme déjà enregistré pour ce match.");
+            localStorage.setItem(voteKey, playerPseudo);
+            btn.innerHTML = '<i class="fas fa-check mr-1"></i> Voté';
+            btn.className = 'bg-zinc-200 text-zinc-600 text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg cursor-default';
+            
+            const prof = getLocalProfile();
+            prof.mvpCount = (prof.mvpCount || 3) + 1;
+            localStorage.setItem('la3bin_profile_v3', JSON.stringify(prof));
+            afficherProfilUI();
+        }
+
+        // --- 9. CRÉATION DE MATCH ---
         async function creerPartie() {
             const sport = document.getElementById('input-sport').value;
+            const subGame = document.getElementById('input-subgame').value || sport;
             const date = document.getElementById('input-date').value;
             const time = document.getElementById('input-time').value;
             const lieu = document.getElementById('input-lieu').value;
-            const whatsapp = document.getElementById('input-whatsapp').value;
-            const waze = document.getElementById('input-waze').value;
-            const validationManuelle = document.getElementById('input-validation').checked;
+            const playersNeeded = parseInt(document.getElementById('input-players').value) || 2;
+            const ageBracket = document.getElementById('input-age-bracket').value;
+            const priceMad = parseInt(document.getElementById('input-price').value) || 0;
+            const validation = document.getElementById('input-validation').checked;
 
-            if(!date || !time || !lieu) return alert("⚠️ Veuillez remplir la date, l'heure et le lieu.");
+            if(!sport || !date || !time || !lieu) return alert("⚠️ Veuillez remplir l'Activité, la Date, l'Heure et le Lieu.");
+
+            const prof = getLocalProfile();
+            const hostSkill = (prof.skills && prof.skills[sport]) ? prof.skills[sport] : 'Amateur';
+
+            const metadata = JSON.stringify({
+                subGame, ageBracket, priceMad, validation, hostSkill,
+                hostCinVerified: prof.cinVerified
+            });
 
             const gameTime = new Date(`${date}T${time}:00`).toISOString();
-            const notesData = `Validation: ${validationManuelle ? 'Oui' : 'Non'} | WhatsApp: ${whatsapp} | Waze: ${waze}`;
+            document.getElementById('btn-creer').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publication...';
 
-            const btn = document.getElementById('btn-creer');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création...';
+            const { error } = await client.from('games').insert([{
+                host_id: currentUser.id,
+                activity_type: sport,
+                location_name: lieu,
+                game_time: gameTime,
+                players_needed: playersNeeded,
+                notes: metadata
+            }]);
 
-            const { error } = await client.from('games').insert([
-                { host_id: currentUser.id, activity_type: sport, location_name: lieu, game_time: gameTime, players_needed: 3, notes: notesData }
-            ]);
-
-            btn.innerHTML = 'Valider le match';
-            if (error) {
-                alert("❌ Erreur : " + error.message);
-            } else {
+            document.getElementById('btn-creer').innerHTML = 'Publier le Match';
+            if (error) alert("❌ " + error.message);
+            else {
                 toggleModal();
-                document.getElementById('form-creation').reset();
-                switchView('dashboard'); // On amène l'utilisateur sur son tableau de bord !
+                rafraichirTout();
             }
         }
 
-        async function rejoindrePartie(gameId, btnElement) {
+        function parseNotes(notesStr) {
+            try {
+                if (notesStr && notesStr.startsWith('{')) {
+                    const parsed = JSON.parse(notesStr);
+                    if (parsed.ageBracket !== '18-35' && parsed.ageBracket !== '30+') parsed.ageBracket = '18-35';
+                    if (!parsed.hostSkill) parsed.hostSkill = 'Amateur';
+                    return parsed;
+                }
+            } catch(e) {}
+            return { subGame: null, ageBracket: '18-35', priceMad: 50, validation: true, hostSkill: 'Amateur', hostCinVerified: true };
+        }
+
+        // --- 10. FILTRES & AFFICHAGE AVEC COULEUR DE FOND PAR ACTIVITÉ ---
+        function setSportFilter(sport) {
+            activeSportFilter = sport;
+            document.querySelectorAll('.sport-filter-btn').forEach(btn => {
+                const isSelected = btn.getAttribute('data-sport') === sport;
+                btn.className = isSelected
+                    ? 'sport-filter-btn px-3.5 py-2 bg-zinc-900 text-white font-extrabold rounded-xl whitespace-nowrap shadow-sm uppercase tracking-wider text-[11px] flex items-center gap-1.5 transition-all'
+                    : 'sport-filter-btn px-3.5 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-1.5 transition-all hover:bg-zinc-200/70';
+            });
+            afficherFeedFiltre();
+        }
+
+        function toggleTodayFilter() {
+            filterTodayOnly = !filterTodayOnly;
+            const btn = document.getElementById('btn-filter-today');
+            btn.className = filterTodayOnly
+                ? 'flex-1 py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#e05a47] text-white shadow-sm transition-all text-center'
+                : 'flex-1 py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200 transition-all text-center hover:bg-zinc-200/60';
+            afficherFeedFiltre();
+        }
+
+        function toggleAroundMeFilter() {
+            filterAroundMe = !filterAroundMe;
+            const btn = document.getElementById('btn-filter-around');
+            btn.className = filterAroundMe
+                ? 'flex-1 py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2a9d8f] text-white shadow-sm transition-all text-center'
+                : 'flex-1 py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200 transition-all text-center hover:bg-zinc-200/60';
+            afficherFeedFiltre();
+        }
+
+        async function rafraichirTout() {
+            await chargerParties();
+            await chargerDashboard();
+        }
+
+        async function chargerParties() {
+            const now = new Date().toISOString();
+            const { data, error } = await client.from('games').select('*').gte('game_time', now);
+            if (!error && data) {
+                allGamesCache = data;
+                afficherRadarUrgences();
+                afficherFeedFiltre();
+            }
+        }
+
+        function trierParPriorite(gamesList) {
+            return [...gamesList].sort((a, b) => {
+                const timeA = new Date(a.game_time).getTime();
+                const timeB = new Date(b.game_time).getTime();
+                const hoursDiffA = (timeA - Date.now()) / 3600000;
+                const hoursDiffB = (timeB - Date.now()) / 3600000;
+                const scoreA = (hoursDiffA * 2) + (a.players_needed * 3);
+                const scoreB = (hoursDiffB * 2) + (b.players_needed * 3);
+                return scoreA - scoreB;
+            });
+        }
+
+        function isToday(dateStr) {
+            const d = new Date(dateStr);
+            const now = new Date();
+            return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+
+        function afficherRadarUrgences() {
+            const radarBox = document.getElementById('radar-today-list');
+            const sorted = trierParPriorite(allGamesCache);
+            const urgentGames = sorted.slice(0, 3);
+
+            if (urgentGames.length === 0) {
+                radarBox.innerHTML = '<div class="p-6 text-center text-xs font-bold text-zinc-400 border border-dashed border-zinc-200 rounded-2xl">Aucun match imminent.</div>';
+                return;
+            }
+
+            radarBox.innerHTML = '';
+            urgentGames.forEach(g => {
+                const cfg = SPORT_CONFIG[g.activity_type] || SPORT_CONFIG['Football'];
+                const meta = parseNotes(g.notes);
+                const distKm = calculerDistanceClub(g.location_name);
+                const d = new Date(g.game_time);
+                const heureStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                const dispoToday = isToday(g.game_time);
+
+                radarBox.insertAdjacentHTML('beforeend', `
+                    <div class="${cfg.cardBg} p-3.5 rounded-2xl border ${cfg.cardBorder} mb-3 transition">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-white/90 ${cfg.text}">
+                                ${dispoToday ? 'Aujourd\'hui' : 'Imminent'} • ${distKm} km
+                            </span>
+                            <span class="text-[10px] font-black text-zinc-900 bg-white px-2 py-0.5 rounded border border-zinc-200">
+                                -${g.players_needed} place${g.players_needed > 1 ? 's' : ''}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-end mt-2">
+                            <div class="pr-2">
+                                <h4 class="font-black text-xs text-black uppercase leading-snug">${meta.subGame || g.activity_type}</h4>
+                                <p class="text-[11px] font-semibold text-zinc-600 truncate max-w-[150px]">${g.location_name} • ${heureStr}</p>
+                            </div>
+                            <button onclick="rejoindrePartie('${g.id}', this, ${meta.priceMad})" class="bg-zinc-900 hover:bg-black text-white text-[10px] font-extrabold uppercase px-3.5 py-2 rounded-xl active:scale-95 shrink-0">
+                                Rejoindre
+                            </button>
+                        </div>
+                    </div>
+                `);
+            });
+        }
+
+        function afficherFeedFiltre() {
+            const feed = document.getElementById('feed-parties');
+            let list = trierParPriorite(allGamesCache);
+
+            if (activeSportFilter !== 'ALL') list = list.filter(g => g.activity_type === activeSportFilter);
+            if (filterTodayOnly) list = list.filter(g => isToday(g.game_time));
+            if (filterAroundMe) {
+                list = list.filter(g => calculerDistanceClub(g.location_name) <= 4.0);
+            }
+
+            if (list.length === 0) {
+                feed.innerHTML = '<div class="border border-dashed border-zinc-300 rounded-2xl p-8 text-center text-zinc-400 font-bold text-xs">Aucun match trouvé pour ce filtre.</div>';
+                return;
+            }
+
+            feed.innerHTML = '';
+            list.forEach(partie => feed.insertAdjacentHTML('beforeend', genererCarteHTML(partie, false)));
+        }
+
+        async function rejoindrePartie(gameId, btnElement, priceMad = 0) {
             if (!currentUser) return;
+            if (priceMad > 0) {
+                const total = priceMad + 5;
+                const ok = confirm(`💳 Confirmation de réservation :\nPart terrain : ${priceMad} MAD\nFrais service LA3BIN : 5 MAD\nTotal : ${total} MAD\n\nConfirmer ?`);
+                if (!ok) return;
+            }
             btnElement.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
             btnElement.disabled = true;
 
             const { error } = await client.from('game_participants').insert([{ game_id: gameId, player_id: currentUser.id }]);
-
             if (error) {
-                if (error.code === '23505' || error.message.includes('unique')) {
-                    btnElement.innerHTML = '<i class="fas fa-check mr-2"></i> Déjà demandé';
-                    btnElement.className = 'w-full bg-zinc-100 text-zinc-400 font-bold py-4 rounded-xl cursor-not-allowed uppercase text-xs tracking-widest transition-all';
+                if (error.code === '23505') {
+                    btnElement.innerHTML = 'Inscrit • Chat';
+                    btnElement.className = 'px-3.5 py-2 bg-[#2a9d8f] text-white font-extrabold rounded-xl uppercase text-[10px] tracking-wider shrink-0';
+                    btnElement.disabled = false;
+                    btnElement.onclick = () => ouvrirChatRDV(gameId, 'Salon du Match');
                 } else {
-                    alert("❌ Erreur : " + error.message);
-                    btnElement.innerHTML = 'Demander à rejoindre';
+                    alert("❌ " + error.message);
+                    btnElement.innerHTML = 'Rejoindre';
                     btnElement.disabled = false;
                 }
             } else {
-                btnElement.innerHTML = '<i class="fas fa-check-circle mr-2 text-lg"></i> Demande envoyée';
-                btnElement.className = 'w-full bg-white border-2 border-black text-black font-black py-3.5 rounded-xl cursor-not-allowed uppercase text-xs tracking-widest shadow-sm transition-all';
+                btnElement.innerHTML = 'Réservé • Chat';
+                btnElement.className = 'w-full bg-[#2a9d8f] text-white font-extrabold py-3 rounded-xl uppercase text-[11px] tracking-wider shadow-sm';
+                btnElement.disabled = false;
+                btnElement.onclick = () => ouvrirChatRDV(gameId, 'Salon du Match');
             }
         }
 
-        // --- 5. GESTION DU TABLEAU DE BORD (HÔTE) ---
         async function gererCandidature(participantId, action, btnElement) {
             btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            const status = action === 'accepter' ? 'accepted' : 'rejected';
-            
-            const { error } = await client.from('game_participants').update({ status: status }).eq('id', participantId);
-            
-            if(error) {
-                alert("Erreur: " + error.message);
-                chargerDashboard();
-            } else {
-                chargerDashboard(); // Recharge la liste pour mettre à jour l'affichage
-            }
+            await client.from('game_participants').update({ status: action === 'accepter' ? 'accepted' : 'rejected' }).eq('id', participantId);
+            chargerDashboard(); 
         }
 
         async function chargerDashboard() {
             const container = document.getElementById('dashboard-content');
-            container.innerHTML = '<div class="text-center text-black py-12"><i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i></div>';
-
-            // On récupère les parties de l'utilisateur ET les candidatures associées (via game_participants et profiles)
-            const { data, error } = await client
-                .from('games')
-                .select(`
-                    *,
-                    game_participants (
-                        id,
-                        status,
-                        profiles ( username, reliability_score )
-                    )
-                `)
-                .eq('host_id', currentUser.id)
-                .order('game_time', { ascending: true });
-
-            if (error) return container.innerHTML = `<p class="text-red-600 font-bold p-4 border-2 border-red-200 bg-red-50 rounded-xl">Erreur: ${error.message}</p>`;
-            if (!data || data.length === 0) return container.innerHTML = '<div class="border-2 border-dashed border-zinc-300 rounded-2xl p-10 text-center text-zinc-500 font-bold bg-white/50">Vous n\'avez organisé aucun match pour le moment.</div>';
-
-            container.innerHTML = ''; 
+            const now = new Date().toISOString();
+            const { data, error } = await client.from('games').select(`*, game_participants (id, status, profiles ( username, reliability_score ))`).eq('host_id', currentUser.id).gte('game_time', now).order('game_time', { ascending: true });
             
-            data.forEach(partie => {
-                const dateObj = new Date(partie.game_time);
-                const dateStr = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-                
-                let candidatsHTML = '';
-                
-                // Si des joueurs ont demandé à rejoindre
-                if(partie.game_participants && partie.game_participants.length > 0) {
-                    partie.game_participants.forEach(p => {
-                        const pseudo = p.profiles?.username || "Joueur Anonyme";
-                        const score = p.profiles?.reliability_score || 100;
-                        
-                        if(p.status === 'joined' || p.status === 'pending') {
-                            candidatsHTML += `
-                                <div class="flex items-center justify-between bg-zinc-50 p-3 rounded-xl border border-zinc-200 mt-2">
-                                    <div>
-                                        <p class="font-bold text-sm truncate w-32">${pseudo}</p>
-                                        <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Fiabilité: ${score}%</p>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <button onclick="gererCandidature('${p.id}', 'refuser', this)" class="w-10 h-10 bg-white border border-zinc-200 text-red-500 rounded-lg shadow-sm hover:bg-red-50 active:scale-90 transition"><i class="fas fa-times"></i></button>
-                                        <button onclick="gererCandidature('${p.id}', 'accepter', this)" class="w-10 h-10 bg-black text-white rounded-lg shadow-md active:scale-90 transition"><i class="fas fa-check"></i></button>
-                                    </div>
-                                </div>
-                            `;
-                        } else if(p.status === 'accepted') {
-                            candidatsHTML += `
-                                <div class="flex items-center justify-between bg-emerald-50 p-3 rounded-xl border border-emerald-200 mt-2">
-                                    <div>
-                                        <p class="font-bold text-sm text-emerald-900">${pseudo}</p>
-                                    </div>
-                                    <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-100 px-2 py-1 rounded">Accepté</span>
-                                </div>
-                            `;
-                        }
-                    });
-                }
-
-                if(candidatsHTML === '') candidatsHTML = '<p class="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-4 text-center">Aucune demande</p>';
-
-                const cardHTML = `
-                    <div class="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm relative mb-5">
-                        <div class="flex justify-between items-start mb-4 border-b border-zinc-100 pb-4">
-                            <div>
-                                <h3 class="font-black text-lg text-zinc-900 uppercase tracking-tight">${partie.activity_type}</h3>
-                                <p class="text-zinc-500 text-xs font-bold mt-1"><i class="far fa-clock mr-1"></i> ${dateStr}</p>
-                            </div>
-                            <div class="bg-orange-100 text-orange-600 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-widest">
-                                Manque ${partie.players_needed}
-                            </div>
-                        </div>
-                        <h4 class="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Candidatures :</h4>
-                        ${candidatsHTML}
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', cardHTML);
-            });
+            if (error || !data || data.length === 0) {
+                container.innerHTML = '<div class="border border-dashed border-zinc-300 rounded-2xl p-8 text-center text-zinc-400 font-bold text-xs">Aucun match organisé par vous.</div>';
+                return;
+            }
+            container.innerHTML = ''; 
+            data.forEach(partie => container.insertAdjacentHTML('beforeend', genererCarteHTML(partie, true)));
         }
 
-        // --- 6. CHARGEMENT DES PARTIES EN DIRECT (FEED) ---
-        async function chargerParties() {
-            const feed = document.getElementById('feed-parties');
-            feed.innerHTML = '<div class="text-center text-black py-12"><i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i></div>';
-            const { data, error } = await client.from('games').select('*').order('game_time', { ascending: true });
-            if (error) return feed.innerHTML = `<p class="text-red-600 font-bold p-4 border-2 border-red-200 bg-red-50 rounded-xl">Erreur: ${error.message}</p>`;
-            if (!data || data.length === 0) return feed.innerHTML = '<div class="border-2 border-dashed border-zinc-300 rounded-2xl p-10 text-center text-zinc-500 font-bold bg-white/50">Aucune partie prévue.</div>';
+        function genererCarteHTML(partie, isDashboard) {
+            const cfg = SPORT_CONFIG[partie.activity_type] || SPORT_CONFIG['Football'];
+            const meta = parseNotes(partie.notes);
+            const distKm = calculerDistanceClub(partie.location_name);
+            const d = new Date(partie.game_time);
+            const todayFlag = isToday(partie.game_time);
+            const dateStr = (todayFlag ? "Aujourd'hui" : d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            const priceLabel = meta.priceMad > 0 ? `${meta.priceMad} DH/p` : 'Gratuit';
 
-            feed.innerHTML = ''; 
-            data.forEach(partie => {
-                let emoji = '🏅';
-                if(partie.activity_type.toLowerCase().includes('foot')) emoji = '⚽';
-                if(partie.activity_type.toLowerCase().includes('padel')) emoji = '🎾';
-                if(partie.activity_type.toLowerCase().includes('jeux')) emoji = '🎲';
-                if(partie.activity_type.toLowerCase().includes('basket')) emoji = '🏀';
-
-                const dateObj = new Date(partie.game_time);
-                const heureStr = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-                const dateStr = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
-
-                const cardHTML = `
-                    <div class="bg-white rounded-2xl p-5 border border-zinc-200 hover:border-black transition-colors duration-300 relative mb-5 shadow-sm">
-                        <div class="absolute -top-3 right-4 bg-orange-500 text-white text-[10px] uppercase tracking-widest font-black px-4 py-1.5 rounded-full shadow-md shadow-orange-500/40 border-2 border-white">
-                            Il manque ${partie.players_needed} joueurs
-                        </div>
-                        <div class="flex items-center gap-4 mb-5 mt-2">
-                            <div class="w-14 h-14 bg-zinc-50 rounded-xl flex items-center justify-center text-2xl border border-zinc-100 text-black shadow-inner">
-                                ${emoji}
-                            </div>
-                            <div>
-                                <h3 class="font-black text-xl text-zinc-900 uppercase tracking-tight">${partie.activity_type}</h3>
-                                <p class="text-zinc-500 text-sm font-bold mt-0.5"><i class="far fa-clock mr-1"></i> ${dateStr} à ${heureStr}</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center text-sm text-zinc-700 mb-5 bg-zinc-50 p-3 rounded-lg border border-zinc-100 font-bold">
-                            <i class="fas fa-map-marker-alt w-6 text-center text-zinc-400 mr-2 text-base"></i> 
-                            <span class="truncate">${partie.location_name}</span>
-                        </div>
-                        <button onclick="rejoindrePartie('${partie.id}', this)" class="w-full bg-black hover:bg-zinc-800 text-white font-extrabold py-4 rounded-xl transition-all duration-200 active:scale-95 uppercase text-xs tracking-widest shadow-lg shadow-black/10">
-                            Demander à rejoindre
+            let basCarte = `
+                <div class="flex gap-2">
+                    <button onclick="rejoindrePartie('${partie.id}', this, ${meta.priceMad})" class="flex-1 bg-zinc-900 hover:bg-black text-white font-extrabold py-3 rounded-xl active:scale-95 transition-all uppercase text-[11px] tracking-wider">
+                        Rejoindre ${meta.priceMad > 0 ? '• ' + meta.priceMad + ' DH' : ''}
+                    </button>
+                    <button onclick="ouvrirChatRDV('${partie.id}', '${meta.subGame || partie.activity_type}')" class="w-11 bg-white/90 hover:bg-white text-zinc-800 border border-zinc-200/80 rounded-xl flex items-center justify-center active:scale-95 transition" title="Salon Chat du RDV">
+                        <i class="fas fa-comments text-sm"></i>
+                    </button>
+                </div>`;
+            
+            if(isDashboard) {
+                let cHTML = '';
+                (partie.game_participants || []).forEach(p => {
+                    const pseudo = p.profiles?.username || "Joueur Vérifié";
+                    if(p.status === 'joined' || p.status === 'pending') {
+                        cHTML += `
+                            <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border border-zinc-200 mt-2">
+                                <div>
+                                    <p class="font-bold text-xs truncate">${pseudo}</p>
+                                    <span class="text-[9px] font-bold text-zinc-400 uppercase">Fiabilité 100%</span>
+                                </div>
+                                <div class="flex gap-1.5">
+                                    <button onclick="gererCandidature('${p.id}', 'refuser', this)" class="w-7 h-7 bg-zinc-100 text-red-500 rounded-lg active:scale-90 text-xs"><i class="fas fa-times"></i></button>
+                                    <button onclick="gererCandidature('${p.id}', 'accepter', this)" class="w-7 h-7 bg-zinc-900 text-white rounded-lg active:scale-90 text-xs"><i class="fas fa-check"></i></button>
+                                </div>
+                            </div>`;
+                    } else if(p.status === 'accepted') {
+                        cHTML += `
+                            <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border border-zinc-200 mt-2">
+                                <div>
+                                    <p class="font-bold text-xs">${pseudo}</p>
+                                    <span class="text-[9px] font-extrabold text-[#2a9d8f] uppercase">Confirmé</span>
+                                </div>
+                                <button onclick="voterMVPAnonyme('${partie.id}', '${pseudo}', this)" class="bg-amber-100 text-amber-800 text-[9px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-lg active:scale-95">
+                                    <i class="fas fa-trophy mr-1"></i> Voter MVP
+                                </button>
+                            </div>`;
+                    }
+                });
+                basCarte = `
+                    <div class="flex justify-between items-center border-t border-black/10 pt-3 mt-3 mb-2">
+                        <h4 class="text-[10px] font-extrabold text-zinc-600 uppercase tracking-wider">Joueurs & MVP</h4>
+                        <button onclick="ouvrirChatRDV('${partie.id}', '${meta.subGame || partie.activity_type}')" class="text-[10px] font-extrabold uppercase bg-zinc-900 text-white px-3 py-1.5 rounded-lg active:scale-95">
+                            <i class="fas fa-comments mr-1"></i> Chat RDV
                         </button>
                     </div>
-                `;
-                feed.insertAdjacentHTML('beforeend', cardHTML);
-            });
+                    ${cHTML || '<p class="text-[11px] font-semibold text-zinc-500 text-center py-2">En attente de joueurs</p>'}`;
+            }
+
+            return `
+                <div class="${cfg.cardBg} rounded-2xl p-4 border ${cfg.cardBorder} hover:border-zinc-500 transition-all relative mb-3.5 shadow-sm">
+                    <div class="flex justify-between items-start gap-2 mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 ${cfg.iconBg} rounded-xl flex items-center justify-center text-base border ${cfg.cardBorder} ${cfg.text} shrink-0 shadow-sm">
+                                <i class="fas ${cfg.icon}"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <h3 class="font-black text-sm text-zinc-900 uppercase tracking-tight leading-tight">${meta.subGame || partie.activity_type}</h3>
+                                    ${meta.hostCinVerified ? '<i class="fas fa-check-circle text-[#2a9d8f] text-[11px]" title="CIN Vérifiée"></i>' : ''}
+                                </div>
+                                <p class="text-zinc-600 text-[11px] font-semibold mt-0.5"><i class="far fa-clock mr-1"></i> ${dateStr} • <span class="font-extrabold">${ distKm } km</span></p>
+                            </div>
+                        </div>
+                        <span class="${cfg.badgeBg} text-white text-[9px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-full shrink-0 shadow-sm">
+                            Manque ${partie.players_needed}
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 mb-3.5">
+                        <span class="bg-white/90 border border-black/5 text-zinc-800 text-[10px] font-bold px-2.5 py-1 rounded-lg"><i class="fas fa-location-dot mr-1 ${cfg.text}"></i>${partie.location_name}</span>
+                        <span class="bg-white/90 border border-black/5 text-zinc-700 text-[10px] font-bold px-2.5 py-1 rounded-lg"><i class="fas fa-signal mr-1"></i>${meta.hostSkill}</span>
+                        <span class="bg-white/90 border border-black/5 text-zinc-700 text-[10px] font-bold px-2.5 py-1 rounded-lg"><i class="fas fa-users mr-1"></i>${meta.ageBracket} ans</span>
+                        <span class="bg-white/90 border border-black/5 text-zinc-800 text-[10px] font-extrabold px-2.5 py-1 rounded-lg">${priceLabel}</span>
+                    </div>
+                    ${basCarte}
+                </div>`;
         }
     </script>
 
     <!-- ÉCRAN D'AUTHENTIFICATION -->
     <div id="screen-auth" class="hidden fixed inset-0 bg-zinc-100 z-50 flex flex-col justify-center px-6 transition-opacity duration-300">
-        <div class="max-w-md mx-auto w-full bg-white p-8 rounded-3xl border border-zinc-200 shadow-2xl">
+        <div class="max-w-md mx-auto w-full bg-white p-8 rounded-3xl border border-zinc-200 shadow-xl">
             <div class="text-center mb-8">
-                <h1 class="text-5xl font-black text-black tracking-tighter mb-3 uppercase">PlayGrid<span class="text-orange-500">.</span></h1>
-                <p class="text-zinc-500 font-bold text-sm uppercase tracking-wider">Trouvez vos joueurs.</p>
+                <h1 class="text-5xl font-black text-black tracking-tighter mb-2 uppercase logo-container">
+                    LA3BIN<span class="logo-punct-wrapper"><span class="logo-punct" style="color: #e05a47;">?</span></span>
+                </h1>
+                <p class="text-zinc-500 font-bold text-xs uppercase tracking-widest">Matchmaking Sport & Jeux</p>
             </div>
-            
-            <div class="space-y-5">
-                <div>
-                    <label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Email</label>
-                    <input type="email" id="auth-email" placeholder="joueur@email.com" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-black font-bold focus:outline-none focus:border-black transition-all">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Mot de passe</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-black font-bold focus:outline-none focus:border-black transition-all">
-                </div>
-                
-                <div class="pt-4 space-y-3">
-                    <button id="btn-login" onclick="seConnecter()" class="w-full bg-black text-white font-black text-sm py-4 rounded-xl active:scale-95 transition-all uppercase tracking-widest shadow-xl shadow-black/10">Se connecter</button>
-                    <button id="btn-register" onclick="creerCompte()" class="w-full bg-white border-2 border-zinc-200 text-black font-black text-sm py-4 rounded-xl active:scale-95 transition-all uppercase tracking-widest">Créer un compte</button>
+            <div class="space-y-4">
+                <div><label class="block text-[10px] font-black text-zinc-400 mb-1.5 uppercase tracking-widest">Email</label><input type="email" id="auth-email" class="input-premium" placeholder="joueur@la3bin.ma"></div>
+                <div><label class="block text-[10px] font-black text-zinc-400 mb-1.5 uppercase tracking-widest">Mot de passe</label><input type="password" id="auth-password" class="input-premium" placeholder="••••••••"></div>
+                <div class="pt-3 space-y-2.5">
+                    <button id="btn-login" onclick="seConnecter()" class="w-full bg-zinc-900 text-white font-black text-xs py-4 rounded-xl active:scale-95 uppercase tracking-widest">Se connecter</button>
+                    <button id="btn-register" onclick="creerCompte()" class="w-full bg-white border-2 border-zinc-200 text-black font-black text-xs py-4 rounded-xl active:scale-95 uppercase tracking-widest">Créer un compte</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- En-tête -->
-    <header class="bg-zinc-100/80 backdrop-blur-md p-4 sticky top-0 z-40">
-        <div class="max-w-md mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-black text-black tracking-tighter uppercase">PlayGrid<span class="text-orange-500">.</span></h1>
-            <button onclick="seDeconnecter()" class="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-zinc-200 shadow-sm active:scale-90 transition-all text-zinc-400 hover:text-black">
-                <i class="fas fa-sign-out-alt"></i>
-            </button>
+    <!-- EN-TÊTE GLOBAL -->
+    <header class="bg-white/95 backdrop-blur-md border-b border-zinc-200 px-4 lg:px-8 py-3.5 sticky top-0 z-40">
+        <div class="max-w-[1440px] mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-black text-black tracking-tighter uppercase logo-container">
+                    LA3BIN<span class="logo-punct-wrapper"><span class="logo-punct" style="color: #e05a47;">?</span></span>
+                </h1>
+                <span class="hidden sm:inline-block bg-zinc-100 text-zinc-500 text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-md tracking-wider">Casablanca Live</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <!-- BOUTON SIMULATEUR MOBILE DEPUIS LE PC -->
+                <button id="btn-sim-mobile" onclick="toggleMobileSimulator()" class="hidden lg:flex items-center bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-extrabold uppercase tracking-wider px-3.5 py-2 rounded-xl transition" title="Tester la version téléphone sur PC">
+                    <i class="fas fa-mobile-screen-button mr-1.5"></i> Vue Mobile
+                </button>
+                <button onclick="toggleModal()" class="hidden lg:flex items-center gap-2 bg-zinc-900 text-white text-xs font-extrabold uppercase tracking-wider px-4 py-2 rounded-xl hover:bg-black active:scale-95 transition">
+                    <i class="fas fa-plus text-[#e05a47]"></i> Nouveau Match
+                </button>
+                <button onclick="switchMobileTab('account')" class="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200/70 px-2.5 py-1.5 rounded-full border border-zinc-200 transition">
+                    <img id="header-avatar" src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Atlas&backgroundColor=e05a47" class="w-7 h-7 rounded-full object-cover" alt="Profil">
+                    <i class="fas fa-check-circle text-[#2a9d8f] text-xs"></i>
+                </button>
+                <button onclick="seDeconnecter()" class="w-9 h-9 bg-zinc-100 hover:bg-zinc-200 rounded-full flex items-center justify-center text-zinc-500 hover:text-black transition" title="Déconnexion">
+                    <i class="fas fa-sign-out-alt text-sm"></i>
+                </button>
+            </div>
         </div>
     </header>
 
-    <!-- VUE 1 : LE FLUX D'ACTUALITÉ (FEED) -->
-    <main id="view-feed" class="max-w-md mx-auto p-4 mt-2 relative z-10">
-        <div class="flex justify-between items-end mb-6">
-            <div>
-                <h2 class="text-4xl font-black tracking-tighter text-black uppercase">Flux</h2>
-                <p class="text-zinc-500 text-xs mt-1 font-extrabold uppercase tracking-widest">Casablanca & Environs</p>
+    <!-- GRILLE PRINCIPALE : 4 ESPACES NOMMÉS PROPREMENT -->
+    <div id="main-grid" class="max-w-[1440px] mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start transition-all">
+
+        <!-- ESPACE 1 : RADAR LIVE & GPS TEMPS RÉEL -->
+        <section id="panel-radar" class="hidden lg:block lg:col-span-3 bento-panel">
+            <div class="mb-4 pb-3 border-b border-zinc-100">
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#e05a47]">Radar Live</span>
+                <h2 class="text-lg font-black tracking-tight text-black uppercase mt-0.5">Dispo Aujourd'hui</h2>
+                <p class="text-zinc-400 text-[11px] font-semibold">Trié par heure proche & places</p>
             </div>
-            <button class="bg-white w-12 h-12 rounded-full flex items-center justify-center text-black border border-zinc-200 active:scale-90 transition-all shadow-sm"><i class="fas fa-filter"></i></button>
-        </div>
+            <div id="radar-today-list" class="mb-5"></div>
 
-        <div class="flex gap-3 overflow-x-auto pb-4 mb-2 scrollbar-hide">
-            <button class="px-6 py-3 bg-black text-white font-black rounded-full whitespace-nowrap shadow-md uppercase tracking-wider text-xs">Tout</button>
-            <button class="px-6 py-3 bg-white text-zinc-600 font-black rounded-full whitespace-nowrap border border-zinc-200 active:scale-95 uppercase tracking-wider text-xs">🎾 Padel</button>
-            <button class="px-6 py-3 bg-white text-zinc-600 font-black rounded-full whitespace-nowrap border border-zinc-200 active:scale-95 uppercase tracking-wider text-xs">⚽ Football</button>
-        </div>
+            <div class="bg-zinc-50 p-4 rounded-2xl border border-zinc-200/80">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-extrabold text-xs uppercase text-black"><i class="fas fa-location-arrow text-[#2a9d8f] mr-1.5"></i> Autour de moi</h3>
+                    <span id="gps-status-badge" class="text-[9px] font-extrabold text-[#2a9d8f] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Maarif (Défaut)</span>
+                </div>
+                <p class="text-[11px] text-zinc-500 font-medium mb-3">Calcule en temps réel les kilomètres exacts depuis votre position GPS actuelle.</p>
+                <button onclick="activerGpsTempsReel(true); if(isMobileSim || window.innerWidth < 1024) switchMobileTab('feed');" class="w-full bg-[#2a9d8f] hover:opacity-95 text-white font-extrabold text-[11px] uppercase tracking-wider py-2.5 rounded-xl active:scale-95 transition">
+                    <i class="fas fa-location-crosshairs mr-1.5"></i> Activer mon GPS réel
+                </button>
+            </div>
+        </section>
 
-        <div id="feed-parties" class="space-y-2 pb-6"></div>
-    </main>
+        <!-- ESPACE 2 : MATCHMAKING (Avec fonds colorés par activité) -->
+        <section id="panel-feed" class="block lg:col-span-4 bento-panel">
+            <div class="mb-3 pb-3 border-b border-zinc-100">
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#457b9d]">Matchmaking</span>
+                <h2 class="text-lg font-black tracking-tight text-black uppercase mt-0.5">Flux des Matchs</h2>
+                
+                <div class="flex gap-2 mt-3">
+                    <button id="btn-filter-today" onclick="toggleTodayFilter()" class="flex-1 py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200 transition-all text-center hover:bg-zinc-200/60">
+                        <i class="fas fa-bolt mr-1"></i> Aujourd'hui
+                    </button>
+                    <button id="btn-filter-around" onclick="activerGpsTempsReel(true)" class="flex-1 py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200 transition-all text-center hover:bg-zinc-200/60">
+                        <i class="fas fa-location-dot mr-1"></i> Proche (GPS)
+                    </button>
+                </div>
+            </div>
 
-    <!-- VUE 2 : LE TABLEAU DE BORD (MES MATCHS) -->
-    <main id="view-dashboard" class="hidden max-w-md mx-auto p-4 mt-2 relative z-10">
-        <div class="mb-6">
-            <h2 class="text-4xl font-black tracking-tighter text-black uppercase">Mes Matchs</h2>
-            <p class="text-zinc-500 text-xs mt-1 font-extrabold uppercase tracking-widest">Gérez vos candidatures</p>
-        </div>
-        
-        <div id="dashboard-content" class="space-y-2 pb-6">
-            <!-- Les parties organisées s'afficheront ici -->
-        </div>
-    </main>
+            <!-- Filtres par sport -->
+            <div class="flex gap-1.5 overflow-x-auto pb-3 mb-2 scrollbar-hide">
+                <button data-sport="ALL" onclick="setSportFilter('ALL')" class="sport-filter-btn px-3.5 py-2 bg-zinc-900 text-white font-extrabold rounded-xl whitespace-nowrap shadow-sm uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    Tout
+                </button>
+                <button data-sport="Football" onclick="setSportFilter('Football')" class="sport-filter-btn px-3.5 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <i class="fas fa-futbol text-[#2a9d8f]"></i> Foot
+                </button>
+                <button data-sport="Padel" onclick="setSportFilter('Padel')" class="sport-filter-btn px-3.5 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <i class="fas fa-table-tennis-paddle-ball text-[#d4a338]"></i> Padel
+                </button>
+                <button data-sport="Basketball" onclick="setSportFilter('Basketball')" class="sport-filter-btn px-3.5 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <i class="fas fa-basketball text-[#e06d47]"></i> Basket
+                </button>
+                <button data-sport="Jeux de société" onclick="setSportFilter('Jeux de société')" class="sport-filter-btn px-3.5 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <i class="fas fa-chess-knight text-[#457b9d]"></i> Jeux
+                </button>
+            </div>
 
-    <!-- Navigation Flottante -->
-    <div class="fixed bottom-6 inset-x-0 flex justify-center z-40 px-4 pointer-events-none">
-        <nav class="w-full max-w-sm bg-white/80 backdrop-blur-xl border border-white/40 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] rounded-3xl flex justify-around p-2 pointer-events-auto items-center">
-            
-            <button onclick="switchView('feed')" id="nav-feed" class="text-black flex flex-col items-center p-2 w-20 active:scale-90 transition-all">
-                <i class="fas fa-layer-group text-xl mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Feed</span>
+            <div id="feed-parties" class="space-y-3"></div>
+        </section>
+
+        <!-- ESPACE 3 : VESTIAIRE (Mes Matchs & Vote MVP) -->
+        <section id="panel-manage" class="hidden lg:block lg:col-span-2 bento-panel">
+            <div class="mb-4 pb-3 border-b border-zinc-100">
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#2a9d8f]">Vestiaire</span>
+                <h2 class="text-lg font-black tracking-tight text-black uppercase mt-0.5">Mes Matchs & MVP</h2>
+                <p class="text-zinc-400 text-[11px] font-semibold">Gérez vos joueurs & élisez le MVP</p>
+            </div>
+            <div id="dashboard-content" class="space-y-3"></div>
+        </section>
+
+        <!-- ESPACE 4 : MON COMPTE (Choix d'Avatar + Niveau par Jeu + CIN) -->
+        <section id="panel-account" class="hidden lg:block lg:col-span-3 space-y-4">
+            <div class="bento-panel space-y-3.5">
+                <div class="pb-2 border-b border-zinc-100 flex justify-between items-center">
+                    <div>
+                        <span class="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400">Identité & Niveaux</span>
+                        <h2 class="text-lg font-black tracking-tight text-black uppercase mt-0.5">Mon Compte</h2>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-xl flex items-center gap-1.5">
+                        <i class="fas fa-trophy text-amber-600 text-xs"></i>
+                        <span id="prof-mvp-count" class="text-xs font-black text-amber-800">3</span>
+                        <span class="text-[9px] font-extrabold text-amber-700 uppercase">MVP</span>
+                    </div>
+                </div>
+
+                <!-- Aperçu Avatar + Galerie de choix + Upload Photo -->
+                <div class="bg-zinc-50 p-3 rounded-2xl border border-zinc-200/80">
+                    <div class="flex items-center gap-3 mb-3">
+                        <img id="prof-avatar-preview" src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Atlas&backgroundColor=e05a47" class="w-14 h-14 rounded-2xl object-cover border border-zinc-300 bg-white shrink-0" alt="Avatar">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span id="prof-id-badge" class="text-[9px] font-black bg-zinc-900 text-white px-2 py-0.5 rounded uppercase tracking-wider">#LA3-001</span>
+                                <div id="cin-status-badge"></div>
+                            </div>
+                            <label class="mt-2 inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase bg-white border border-zinc-200 px-2.5 py-1 rounded-lg cursor-pointer hover:border-black transition">
+                                <i class="fas fa-camera text-zinc-500"></i> Importer une photo
+                                <input type="file" accept="image/*" class="hidden" onchange="uploaderPhotoLocale(event)">
+                            </label>
+                        </div>
+                    </div>
+                    <p class="text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1.5">Ou choisir un avatar :</p>
+                    <div id="avatar-presets-grid" class="flex gap-2 justify-between"></div>
+                    <input type="hidden" id="prof-avatar">
+                </div>
+
+                <!-- Infos Personnelles -->
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Prénom</label>
+                        <input type="text" id="prof-prenom" class="input-premium" placeholder="Hicham">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Nom</label>
+                        <input type="text" id="prof-nom" class="input-premium" placeholder="EL JAMALI">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Tranche d'âge</label>
+                        <select id="prof-age" class="input-premium">
+                            <option value="18-35" selected>18 à 35 ans</option>
+                            <option value="30+">30 ans et plus</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Quartier</label>
+                        <select id="prof-quartier" class="input-premium">
+                            <option value="Maarif / Anfa">Maarif / Anfa</option>
+                            <option value="Oasis / Californie">Oasis / Californie</option>
+                            <option value="Bouskoura">Bouskoura</option>
+                            <option value="Ain Diab">Ain Diab</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">N° Carte Nationale (Vérification CIN)</label>
+                    <input type="text" id="prof-cin" class="input-premium" placeholder="Ex: BE894512">
+                </div>
+
+                <!-- PRÉ-SÉLECTION DU NIVEAU PAR DISCIPLINE -->
+                <div class="pt-2 border-t border-zinc-100">
+                    <label class="block text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider mb-2">Mon Niveau par Jeu</label>
+                    <div id="skills-selector-box" class="space-y-2"></div>
+                </div>
+
+                <button onclick="saveLocalProfile()" class="w-full bg-zinc-900 hover:bg-black text-white font-extrabold text-[11px] py-3.5 rounded-xl uppercase tracking-wider active:scale-95 transition">
+                    Enregistrer Mon Compte
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- BARRE DE NAVIGATION MOBILE (Visible sur téléphone OU en mode Simulateur Mobile sur PC) -->
+    <div id="mobile-bottom-nav" class="lg:hidden fixed bottom-5 inset-x-0 flex justify-center z-40 px-4 pointer-events-none">
+        <nav class="w-full max-w-md bg-white/95 backdrop-blur-xl border border-zinc-200 shadow-xl rounded-3xl flex justify-around p-2 pointer-events-auto items-center">
+            <button onclick="switchMobileTab('feed')" id="mnav-feed" class="text-black flex flex-col items-center p-2 w-16 active:scale-90">
+                <i class="fas fa-fire text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Flux</span>
             </button>
-            
-            <button onclick="toggleModal()" class="text-white bg-black w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-90 transition-all duration-200 -mt-8 border-4 border-white/50">
-                <i class="fas fa-plus text-xl"></i>
+            <button onclick="switchMobileTab('radar')" id="mnav-radar" class="text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90">
+                <i class="fas fa-compass text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Radar</span>
             </button>
-            
-            <button onclick="switchView('dashboard')" id="nav-dash" class="text-zinc-400 hover:text-black flex flex-col items-center p-2 w-20 active:scale-90 transition-all">
-                <i class="fas fa-calendar-check text-xl mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Gérer</span>
+            <button onclick="toggleModal()" class="text-white bg-zinc-900 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 -mt-8 border-4 border-white">
+                <i class="fas fa-plus text-xl text-[#e05a47]"></i>
             </button>
-
+            <button onclick="switchMobileTab('manage')" id="mnav-manage" class="text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90">
+                <i class="fas fa-trophy text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Vestiaire</span>
+            </button>
+            <button onclick="switchMobileTab('account')" id="mnav-account" class="text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90">
+                <i class="fas fa-user-check text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Compte</span>
+            </button>
         </nav>
     </div>
 
-    <!-- MODAL "ORGANISER" -->
-    <div id="modal-organiser" class="hidden fixed inset-0 bg-zinc-900/40 z-50 flex flex-col justify-end backdrop-blur-sm transition-all duration-300">
-        <div class="bg-white w-full max-w-md mx-auto rounded-t-[2rem] p-6 h-[85vh] overflow-y-auto shadow-2xl relative">
-            <button onclick="toggleModal()" class="absolute top-6 right-6 text-zinc-400 hover:text-black text-xl w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center active:scale-90 transition-all"><i class="fas fa-times"></i></button>
-            <h2 class="text-3xl font-black mb-8 text-black tracking-tighter uppercase mt-2">Nouveau<br>Match<span class="text-orange-500">.</span></h2>
-            <form id="form-creation" class="space-y-6">
-                <!-- Champs du formulaire (identiques à la version précédente) -->
-                <div><label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Activité</label><select id="input-sport" class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 text-black font-extrabold focus:outline-none focus:border-black"><option value="Padel">🎾 Padel</option><option value="Football">⚽ Football</option><option value="Jeux de société">🎲 Jeux de société</option></select></div>
-                <div class="flex gap-4"><div class="w-1/2"><label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Date</label><input type="date" id="input-date" class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 text-black font-extrabold focus:outline-none focus:border-black"></div><div class="w-1/2"><label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Heure</label><input type="time" id="input-time" class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 text-black font-extrabold focus:outline-none focus:border-black"></div></div>
-                <div><label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Lieu exact</label><input type="text" id="input-lieu" class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 text-black font-extrabold mb-2 focus:outline-none focus:border-black"><input type="url" id="input-waze" placeholder="Lien Waze/Maps (Optionnel)" class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 text-xs font-bold text-zinc-500 focus:outline-none focus:border-black"></div>
-                <div><label class="block text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Invitation WhatsApp</label><input type="url" id="input-whatsapp" placeholder="https://chat.whatsapp.com/..." class="w-full bg-zinc-50 border border-zinc-200 border-l-4 border-l-black rounded-2xl p-4 text-black font-extrabold focus:outline-none focus:border-black"></div>
-                <div class="bg-zinc-50 border border-zinc-200 p-5 rounded-2xl flex items-center justify-between mt-2"><div><h4 class="font-black text-black text-xs uppercase tracking-widest">Validation Manuelle</h4><p class="text-[10px] text-zinc-500 mt-1 font-bold uppercase tracking-wider">Acceptez les joueurs avant.</p></div><input type="checkbox" id="input-validation" class="w-6 h-6 accent-black border-zinc-300 rounded" checked></div>
-                <button type="button" id="btn-creer" onclick="creerPartie()" class="w-full bg-black text-white font-black text-sm py-5 rounded-2xl mt-4 active:scale-95 transition-all shadow-xl shadow-black/10 uppercase tracking-widest">Valider le match</button>
+    <!-- MODAL "NOUVEAU MATCH" -->
+    <div id="modal-organiser" class="hidden fixed inset-0 bg-zinc-900/50 z-50 flex flex-col justify-end lg:justify-center backdrop-blur-sm">
+        <div class="bg-white w-full max-w-lg mx-auto rounded-t-[2rem] lg:rounded-[2rem] p-6 h-[88vh] lg:h-auto lg:max-h-[90vh] overflow-y-auto shadow-2xl relative">
+            <button onclick="toggleModal()" class="absolute top-6 right-6 text-zinc-400 hover:text-black text-xl w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-black mb-5 text-black tracking-tight uppercase">Organiser un Match</h2>
+            
+            <form id="form-creation" class="space-y-4 pb-8">
+                <div class="custom-dropdown-container relative">
+                    <label class="block text-[10px] font-black text-zinc-400 mb-1 uppercase tracking-widest">1. Discipline</label>
+                    <div class="input-premium flex justify-between items-center cursor-pointer" onclick="toggleCustomDropdown('drop-sport')">
+                        <span id="label-sport" class="text-zinc-400">Choisir une activité...</span><i class="fas fa-chevron-down text-zinc-400"></i>
+                    </div>
+                    <input type="hidden" id="input-sport">
+                    <div id="drop-sport" class="custom-dropdown hidden absolute left-0 right-0 mt-2 bg-white border border-zinc-200 rounded-2xl shadow-xl z-[60] p-2 space-y-1">
+                        <div onclick="selectSport('Football')" class="px-4 py-2.5 hover:bg-emerald-50 rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-futbol text-[#2a9d8f] text-base"></i> Football</div>
+                        <div onclick="selectSport('Padel')" class="px-4 py-2.5 hover:bg-amber-50 rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-table-tennis-paddle-ball text-[#d4a338] text-base"></i> Padel</div>
+                        <div onclick="selectSport('Basketball')" class="px-4 py-2.5 hover:bg-orange-50 rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-basketball text-[#e06d47] text-base"></i> Basketball</div>
+                        <div onclick="selectSport('Jeux de société')" class="px-4 py-2.5 hover:bg-slate-100 rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-chess-knight text-[#457b9d] text-base"></i> Jeux de société & Cartes</div>
+                    </div>
+                </div>
+
+                <div class="custom-dropdown-container relative">
+                    <label class="block text-[10px] font-black text-zinc-400 mb-1 uppercase tracking-widest">2. Format du Jeu</label>
+                    <div class="input-premium flex justify-between items-center cursor-pointer" onclick="toggleCustomDropdown('drop-subgame')">
+                        <span id="label-subgame" class="text-zinc-400">Format précis...</span><i class="fas fa-chevron-down text-zinc-400"></i>
+                    </div>
+                    <input type="hidden" id="input-subgame">
+                    <div id="drop-subgame" class="custom-dropdown hidden absolute left-0 right-0 mt-2 bg-white border border-zinc-200 rounded-2xl shadow-xl z-[60] p-2 space-y-1"></div>
+                </div>
+
+                <div class="custom-dropdown-container relative">
+                    <label class="block text-[10px] font-black text-zinc-400 mb-1 uppercase tracking-widest">3. Club / Lieu</label>
+                    <input type="text" id="input-lieu" placeholder="Tapez ou choisissez un club..." class="input-premium" onfocus="toggleCustomDropdown('drop-lieu-list', true)" onkeyup="renderLieux(this.value)" autocomplete="off">
+                    <div id="drop-lieu-list" class="custom-dropdown hidden absolute top-[68px] left-0 right-0 bg-white border border-zinc-200 rounded-2xl shadow-xl z-[60] max-h-48 overflow-y-auto p-2 space-y-1"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="custom-dropdown-container relative">
+                        <label class="block text-[10px] font-black text-zinc-400 mb-1 uppercase tracking-widest">Date</label>
+                        <div class="input-premium flex justify-between items-center cursor-pointer" onclick="toggleCustomDropdown('drop-date')">
+                            <span id="label-date" class="text-zinc-400">Date...</span><i class="fas fa-chevron-down text-zinc-400"></i>
+                        </div>
+                        <input type="hidden" id="input-date">
+                        <div id="drop-date" class="custom-dropdown hidden absolute left-0 right-0 mt-2 bg-white border border-zinc-200 rounded-2xl shadow-xl z-[60] max-h-48 overflow-y-auto p-2 space-y-1"></div>
+                    </div>
+                    <div class="custom-dropdown-container relative">
+                        <label class="block text-[10px] font-black text-zinc-400 mb-1 uppercase tracking-widest">Heure (30m)</label>
+                        <div class="input-premium flex justify-between items-center cursor-pointer" onclick="toggleCustomDropdown('drop-time')">
+                            <span id="label-time" class="text-zinc-400">Heure...</span><i class="fas fa-chevron-down text-zinc-400"></i>
+                        </div>
+                        <input type="hidden" id="input-time">
+                        <div id="drop-time" class="custom-dropdown hidden absolute left-0 right-0 mt-2 bg-white border border-zinc-200 rounded-2xl shadow-xl z-[60] max-h-48 overflow-y-auto p-2 space-y-1"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2.5">
+                    <div>
+                        <label class="block text-[9px] font-black text-zinc-400 mb-1 uppercase tracking-widest">Places</label>
+                        <input type="number" id="input-players" value="3" min="1" max="20" class="input-premium text-center">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-zinc-400 mb-1 uppercase tracking-widest">Tranche d'âge</label>
+                        <select id="input-age-bracket" class="input-premium !px-2">
+                            <option value="18-35" selected>18 à 35 ans</option>
+                            <option value="30+">30 ans et +</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-zinc-400 mb-1 uppercase tracking-widest">Prix (MAD)</label>
+                        <input type="number" id="input-price" value="50" step="10" min="0" class="input-premium text-center">
+                    </div>
+                </div>
+
+                <div class="bg-zinc-50 border border-zinc-200 p-3.5 rounded-2xl flex items-center justify-between">
+                    <div>
+                        <h4 class="font-extrabold text-black text-xs uppercase">Validation Manuelle</h4>
+                        <p class="text-[10px] text-zinc-500 font-semibold">Vérifier le profil avant d'ouvrir le salon.</p>
+                    </div>
+                    <input type="checkbox" id="input-validation" class="w-5 h-5 accent-zinc-900 rounded" checked>
+                </div>
+
+                <button type="button" id="btn-creer" onclick="creerPartie()" class="w-full bg-zinc-900 hover:bg-black text-white font-black text-xs py-4 rounded-2xl active:scale-95 shadow-lg uppercase tracking-widest">
+                    Publier le Match
+                </button>
             </form>
         </div>
     </div>
+
+    <!-- MODAL SALON CHAT DU RDV -->
+    <div id="modal-chat" class="fixed inset-0 bg-zinc-50 z-[70] transform translate-y-full transition-transform duration-300 flex flex-col">
+        <div class="bg-white border-b border-zinc-200 p-4 flex items-center justify-between shadow-sm">
+            <button onclick="fermerChat()" class="text-zinc-600 hover:text-black font-black text-xs uppercase tracking-widest"><i class="fas fa-chevron-down mr-1.5"></i> Fermer</button>
+            <h2 id="chat-rdv-titre" class="font-black text-sm uppercase tracking-tight text-black">Salon du RDV</h2>
+            <span class="text-[9px] font-black uppercase bg-emerald-50 text-[#2a9d8f] border border-emerald-200 px-2 py-0.5 rounded">Actif</span>
+        </div>
+        <div id="chat-messages-box" class="flex-1 p-5 flex flex-col justify-end overflow-y-auto max-w-2xl mx-auto w-full"></div>
+        <div class="bg-white border-t border-zinc-200 p-4 flex items-center gap-2 max-w-2xl mx-auto w-full">
+            <input type="text" id="chat-input-text" placeholder="Message aux joueurs du RDV..." class="input-premium flex-1 !py-3 !rounded-full" onkeydown="if(event.key==='Enter') envoyerMessageRDV()">
+            <button onclick="envoyerMessageRDV()" class="bg-zinc-900 text-white w-11 h-11 rounded-full flex items-center justify-center active:scale-90 shadow-md shrink-0"><i class="fas fa-paper-plane text-xs"></i></button>
+        </div>
+    </div>
+
 </body>
 </html>
