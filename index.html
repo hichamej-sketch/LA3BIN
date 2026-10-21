@@ -9,11 +9,11 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #111827; }
+        body { font-family: 'Inter', sans-serif; background-color: #f4f4f5; color: #09090b; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="antialiased pb-24 selection:bg-orange-500 selection:text-white">
+<body class="antialiased pb-24 selection:bg-orange-500 selection:text-white bg-zinc-100">
 
     <script>
         // --- 1. CONNEXION SUPABASE ---
@@ -120,7 +120,7 @@
             if (error) {
                 if (error.code === '23505' || error.message.includes('unique')) {
                     btnElement.innerHTML = 'Déjà demandé';
-                    btnElement.className = 'w-full bg-gray-100 border border-gray-300 text-gray-500 font-bold py-3.5 rounded cursor-not-allowed';
+                    btnElement.className = 'w-full bg-zinc-200 border border-zinc-400 text-zinc-600 font-bold py-3.5 rounded-lg cursor-not-allowed uppercase text-sm tracking-wider';
                 } else {
                     alert("❌ Erreur : " + error.message);
                     btnElement.innerHTML = 'Demander à rejoindre';
@@ -128,19 +128,19 @@
                 }
             } else {
                 btnElement.innerHTML = '✅ Demande envoyée';
-                btnElement.className = 'w-full bg-white border-2 border-black text-black font-bold py-3.5 rounded cursor-not-allowed';
+                btnElement.className = 'w-full bg-white border-2 border-black text-black font-bold py-3.5 rounded-lg cursor-not-allowed uppercase text-sm tracking-wider';
             }
         }
 
         // --- 5. CHARGEMENT DES PARTIES EN DIRECT ---
         async function chargerParties() {
             const feed = document.getElementById('feed-parties');
-            feed.innerHTML = '<div class="text-center text-black py-10"><i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i></div>';
+            feed.innerHTML = '<div class="text-center text-black py-12"><i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i></div>';
 
             const { data, error } = await client.from('games').select('*').order('game_time', { ascending: true });
 
-            if (error) return feed.innerHTML = `<p class="text-red-500 font-bold p-4 border border-red-200 bg-red-50">Erreur: ${error.message}</p>`;
-            if (!data || data.length === 0) return feed.innerHTML = '<div class="border border-gray-200 rounded p-8 text-center text-gray-500 font-medium">Aucune partie prévue.</div>';
+            if (error) return feed.innerHTML = `<p class="text-red-600 font-bold p-4 border-2 border-red-200 bg-red-50 rounded-xl">Erreur: ${error.message}</p>`;
+            if (!data || data.length === 0) return feed.innerHTML = '<div class="border-2 border-dashed border-zinc-300 rounded-xl p-10 text-center text-zinc-500 font-bold bg-white/50">Aucune partie prévue.</div>';
 
             feed.innerHTML = ''; 
             data.forEach(partie => {
@@ -155,24 +155,24 @@
                 const dateStr = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
 
                 const cardHTML = `
-                    <div class="bg-white rounded p-5 border border-gray-200 relative mb-4">
-                        <div class="absolute top-0 right-0 bg-orange-500 text-white text-[10px] uppercase tracking-wider font-black px-3 py-1.5 rounded-bl">
+                    <div class="bg-white rounded-xl p-5 border-2 border-zinc-200 hover:border-black transition duration-200 relative mb-5 shadow-sm">
+                        <div class="absolute top-0 right-0 bg-orange-500 text-white text-[10px] uppercase tracking-wider font-extrabold px-3 py-1.5 rounded-bl-lg rounded-tr-lg">
                             Il manque ${partie.players_needed} joueurs
                         </div>
                         <div class="flex items-center gap-4 mb-5 mt-1">
-                            <div class="w-14 h-14 bg-gray-50 rounded flex items-center justify-center text-2xl border border-gray-200 text-black">
+                            <div class="w-14 h-14 bg-zinc-50 rounded-xl flex items-center justify-center text-2xl border-2 border-zinc-100 text-black shadow-inner">
                                 ${emoji}
                             </div>
                             <div>
-                                <h3 class="font-black text-xl text-black uppercase tracking-tight">${partie.activity_type}</h3>
-                                <p class="text-gray-500 text-sm font-semibold mt-0.5"><i class="far fa-clock mr-1"></i> ${dateStr} à ${heureStr}</p>
+                                <h3 class="font-black text-xl text-zinc-900 uppercase tracking-tight">${partie.activity_type}</h3>
+                                <p class="text-zinc-500 text-sm font-bold mt-0.5"><i class="far fa-clock mr-1"></i> ${dateStr} à ${heureStr}</p>
                             </div>
                         </div>
-                        <div class="flex items-center text-sm text-gray-700 mb-5 bg-gray-50 p-3 rounded border border-gray-200">
-                            <i class="fas fa-map-marker-alt w-6 text-center text-black"></i> 
-                            <span class="font-bold">${partie.location_name}</span>
+                        <div class="flex items-center text-sm text-zinc-700 mb-5 bg-zinc-50 p-3 rounded-lg border border-zinc-200 font-bold">
+                            <i class="fas fa-map-marker-alt w-6 text-center text-zinc-400 mr-2 text-base"></i> 
+                            <span>${partie.location_name}</span>
                         </div>
-                        <button onclick="rejoindrePartie('${partie.id}', this)" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-3.5 rounded transition duration-200">
+                        <button onclick="rejoindrePartie('${partie.id}', this)" class="w-full bg-black hover:bg-zinc-800 text-white font-extrabold py-3.5 rounded-lg transition duration-150 uppercase text-sm tracking-wider">
                             Demander à rejoindre
                         </button>
                     </div>
@@ -183,28 +183,28 @@
     </script>
 
     <!-- ÉCRAN D'AUTHENTIFICATION -->
-    <div id="screen-auth" class="fixed inset-0 bg-white z-50 flex flex-col justify-center px-6">
-        <div class="max-w-md mx-auto w-full">
-            <div class="text-center mb-10">
+    <div id="screen-auth" class="fixed inset-0 bg-zinc-100 z-50 flex flex-col justify-center px-6">
+        <div class="max-w-md mx-auto w-full bg-white p-8 rounded-2xl border-2 border-zinc-200 shadow-lg">
+            <div class="text-center mb-8">
                 <h1 class="text-5xl font-black text-black tracking-tighter mb-3 uppercase">PlayGrid<span class="text-orange-500">.</span></h1>
-                <p class="text-gray-500 font-medium">Structurez vos parties. Trouvez vos joueurs.</p>
+                <p class="text-zinc-500 font-bold">Trouvez vos partenaires. Lancez la partie.</p>
             </div>
             
             <div class="space-y-5">
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Email</label>
-                    <input type="email" id="auth-email" placeholder="joueur@email.com" class="w-full bg-gray-50 border border-gray-200 rounded p-4 text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition">
+                    <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Email</label>
+                    <input type="email" id="auth-email" placeholder="joueur@email.com" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-bold focus:outline-none focus:border-black transition">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Mot de passe</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-gray-50 border border-gray-200 rounded p-4 text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition">
+                    <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Mot de passe</label>
+                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-bold focus:outline-none focus:border-black transition">
                 </div>
                 
                 <div class="pt-4 space-y-3">
-                    <button id="btn-login" onclick="seConnecter()" class="w-full bg-black hover:bg-gray-800 text-white font-bold text-lg py-4 rounded transition">
+                    <button id="btn-login" onclick="seConnecter()" class="w-full bg-black hover:bg-zinc-800 text-white font-extrabold text-lg py-4 rounded-xl transition uppercase tracking-wider">
                         Se connecter
                     </button>
-                    <button id="btn-register" onclick="creerCompte()" class="w-full bg-white border-2 border-black hover:bg-gray-50 text-black font-bold text-lg py-4 rounded transition">
+                    <button id="btn-register" onclick="creerCompte()" class="w-full bg-white border-2 border-black hover:bg-zinc-50 text-black font-extrabold text-lg py-4 rounded-xl transition uppercase tracking-wider">
                         Créer un compte
                     </button>
                 </div>
@@ -213,10 +213,10 @@
     </div>
 
     <!-- En-tête de l'application -->
-    <header class="bg-white border-b border-gray-200 p-4 sticky top-0 z-40">
+    <header class="bg-white border-b-2 border-zinc-200 p-4 sticky top-0 z-40 shadow-sm">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <h1 class="text-2xl font-black text-black tracking-tighter uppercase">PlayGrid<span class="text-orange-500">.</span></h1>
-            <button onclick="seDeconnecter()" class="w-10 h-10 bg-white rounded flex items-center justify-center border border-gray-200 hover:border-black text-black transition" title="Se déconnecter">
+            <button onclick="seDeconnecter()" class="w-10 h-10 bg-zinc-50 rounded-lg flex items-center justify-center border-2 border-zinc-200 hover:border-black text-zinc-700 transition" title="Se déconnecter">
                 <i class="fas fa-sign-out-alt"></i>
             </button>
         </div>
@@ -226,31 +226,31 @@
     <main class="max-w-md mx-auto p-4 mt-2">
         <div class="flex justify-between items-end mb-6">
             <div>
-                <h2 class="text-3xl font-black tracking-tighter text-black uppercase">Flux</h2>
-                <p class="text-gray-500 text-sm mt-1 font-medium">Casablanca & Environs</p>
+                <h2 class="text-3xl font-black tracking-tighter text-black uppercase">À proximité</h2>
+                <p class="text-zinc-500 text-sm mt-1 font-extrabold">Casablanca & Environs</p>
             </div>
-            <button class="bg-white p-2.5 rounded text-black border border-gray-200 hover:border-black transition"><i class="fas fa-filter"></i></button>
+            <button class="bg-white p-3 rounded-xl text-black border-2 border-zinc-200 hover:border-black hover:bg-zinc-50 transition shadow-sm"><i class="fas fa-filter text-lg"></i></button>
         </div>
 
         <div class="flex gap-2.5 overflow-x-auto pb-4 mb-4 scrollbar-hide">
-            <button class="px-5 py-2 bg-black text-white font-bold rounded whitespace-nowrap">Tout</button>
-            <button class="px-5 py-2 bg-white text-gray-600 font-bold rounded whitespace-nowrap border border-gray-200 hover:border-black hover:text-black transition">🎾 Padel</button>
-            <button class="px-5 py-2 bg-white text-gray-600 font-bold rounded whitespace-nowrap border border-gray-200 hover:border-black hover:text-black transition">⚽ Football</button>
+            <button class="px-5 py-2.5 bg-black text-white font-extrabold rounded-lg whitespace-nowrap shadow-md uppercase tracking-wider text-sm">Tout</button>
+            <button class="px-5 py-2.5 bg-white text-zinc-700 font-extrabold rounded-lg whitespace-nowrap border-2 border-zinc-200 hover:border-black hover:text-black hover:bg-zinc-50 transition shadow-sm uppercase tracking-wider text-sm">🎾 Padel</button>
+            <button class="px-5 py-2.5 bg-white text-zinc-700 font-extrabold rounded-lg whitespace-nowrap border-2 border-zinc-200 hover:border-black hover:text-black hover:bg-zinc-50 transition shadow-sm uppercase tracking-wider text-sm">⚽ Football</button>
         </div>
 
         <div id="feed-parties" class="space-y-4 pb-12"></div>
     </main>
 
     <!-- MODAL "ORGANISER UNE PARTIE" -->
-    <div id="modal-organiser" class="hidden fixed inset-0 bg-gray-900/40 z-50 flex flex-col justify-end backdrop-blur-sm transition-all">
-        <div class="bg-white w-full max-w-md mx-auto rounded-t-xl p-6 h-[85vh] overflow-y-auto border-t border-gray-200 relative">
-            <button onclick="toggleModal()" class="absolute top-5 right-5 text-gray-400 hover:text-black text-2xl w-8 h-8 rounded flex items-center justify-center transition"><i class="fas fa-times"></i></button>
+    <div id="modal-organiser" class="hidden fixed inset-0 bg-zinc-900/60 z-50 flex flex-col justify-end backdrop-blur-sm transition-all">
+        <div class="bg-white w-full max-w-md mx-auto rounded-t-2xl p-6 h-[85vh] overflow-y-auto border-t-2 border-zinc-200 relative">
+            <button onclick="toggleModal()" class="absolute top-5 right-5 text-zinc-400 hover:text-black text-2xl w-8 h-8 bg-zinc-100 rounded-full flex items-center justify-center transition"><i class="fas fa-times"></i></button>
             <h2 class="text-2xl font-black mb-6 text-black tracking-tighter uppercase">Nouveau Match</h2>
             
             <form id="form-creation" class="space-y-5">
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Activité</label>
-                    <select id="input-sport" class="w-full bg-white border border-gray-200 rounded p-4 text-black font-bold focus:outline-none focus:border-black focus:ring-1 focus:ring-black">
+                    <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Activité</label>
+                    <select id="input-sport" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-extrabold focus:outline-none focus:border-black">
                         <option value="Padel">🎾 Padel</option>
                         <option value="Football">⚽ Football</option>
                         <option value="Jeux de société">🎲 Jeux de société</option>
@@ -259,35 +259,35 @@
 
                 <div class="flex gap-4">
                     <div class="w-1/2">
-                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Date</label>
-                        <input type="date" id="input-date" class="w-full bg-white border border-gray-200 rounded p-4 text-black font-bold focus:outline-none focus:border-black focus:ring-1 focus:ring-black">
+                        <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Date</label>
+                        <input type="date" id="input-date" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-extrabold focus:outline-none focus:border-black">
                     </div>
                     <div class="w-1/2">
-                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Heure</label>
-                        <input type="time" id="input-time" class="w-full bg-white border border-gray-200 rounded p-4 text-black font-bold focus:outline-none focus:border-black focus:ring-1 focus:ring-black">
+                        <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Heure</label>
+                        <input type="time" id="input-time" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-extrabold focus:outline-none focus:border-black">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Lieu exact</label>
-                    <input type="text" id="input-lieu" placeholder="Ex: Oasis Club" class="w-full bg-white border border-gray-200 rounded p-4 text-black font-bold mb-2 focus:outline-none focus:border-black focus:ring-1 focus:ring-black">
-                    <input type="url" id="input-waze" placeholder="Lien Waze/Maps (Optionnel)" class="w-full bg-gray-50 border border-gray-200 rounded p-4 text-sm text-gray-600 focus:outline-none focus:border-black focus:ring-1 focus:ring-black">
+                    <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Lieu exact</label>
+                    <input type="text" id="input-lieu" placeholder="Ex: Oasis Club" class="w-full bg-zinc-50 border-2 border-zinc-200 rounded-xl p-4 text-black font-extrabold mb-2 focus:outline-none focus:border-black">
+                    <input type="url" id="input-waze" placeholder="Lien Waze/Maps (Optionnel)" class="w-full bg-zinc-100/50 border-2 border-zinc-200 rounded-xl p-4 text-sm font-bold text-zinc-600 focus:outline-none focus:border-black">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Lien d'invitation WhatsApp</label>
-                    <input type="url" id="input-whatsapp" placeholder="https://chat.whatsapp.com/..." class="w-full bg-white border border-gray-200 border-l-4 border-l-black rounded p-4 text-black font-bold focus:outline-none focus:border-black focus:ring-1 focus:ring-black">
+                    <label class="block text-xs font-black text-zinc-400 mb-2 uppercase tracking-widest">Lien d'invitation WhatsApp</label>
+                    <input type="url" id="input-whatsapp" placeholder="https://chat.whatsapp.com/..." class="w-full bg-zinc-50 border-2 border-zinc-200 border-l-4 border-l-black rounded-xl p-4 text-black font-extrabold focus:outline-none focus:border-black">
                 </div>
 
-                <div class="bg-gray-50 border border-gray-200 p-4 rounded flex items-center justify-between mt-2">
+                <div class="bg-zinc-50 border-2 border-zinc-200 p-4 rounded-xl flex items-center justify-between mt-2">
                     <div>
-                        <h4 class="font-bold text-black text-sm uppercase tracking-tight">Validation Manuelle</h4>
-                        <p class="text-xs text-gray-500 mt-1 font-medium">Acceptez les profils avant de partager le lieu.</p>
+                        <h4 class="font-extrabold text-black text-sm uppercase tracking-tight">Validation Manuelle</h4>
+                        <p class="text-xs text-zinc-500 mt-1 font-bold">Acceptez les profils avant de partager le lieu.</p>
                     </div>
-                    <input type="checkbox" id="input-validation" class="w-5 h-5 accent-black border-gray-300 rounded" checked>
+                    <input type="checkbox" id="input-validation" class="w-5 h-5 accent-black border-zinc-300 rounded" checked>
                 </div>
 
-                <button type="button" id="btn-creer" onclick="creerPartie()" class="w-full bg-black hover:bg-gray-800 text-white font-bold text-lg py-4 rounded mt-6 transition">
+                <button type="button" id="btn-creer" onclick="creerPartie()" class="w-full bg-black hover:bg-zinc-800 text-white font-extrabold text-lg py-4 rounded-xl mt-6 transition uppercase tracking-wider">
                     Valider le match
                 </button>
             </form>
@@ -295,13 +295,13 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-safe z-30">
+    <nav class="fixed bottom-0 w-full bg-white border-t-2 border-zinc-200 pb-safe z-30 shadow-md">
         <div class="max-w-md mx-auto flex justify-around p-2">
             <button class="text-black flex flex-col items-center p-2 w-16"><i class="fas fa-layer-group text-xl mb-1"></i><span class="text-[10px] font-black uppercase tracking-widest">Feed</span></button>
-            <button onclick="toggleModal()" class="text-gray-400 hover:text-black flex flex-col items-center p-2 w-16 transition">
-                <div class="bg-black text-white w-12 h-12 rounded flex items-center justify-center"><i class="fas fa-plus text-xl"></i></div>
+            <button onclick="toggleModal()" class="text-zinc-400 hover:text-black flex flex-col items-center p-2 w-16 transition">
+                <div class="bg-black hover:bg-zinc-800 text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-md transition"><i class="fas fa-plus text-xl"></i></div>
             </button>
-            <button class="text-gray-400 hover:text-black flex flex-col items-center p-2 w-16 transition"><i class="fas fa-comment-alt text-xl mb-1"></i><span class="text-[10px] font-black uppercase tracking-widest">Chat</span></button>
+            <button class="text-zinc-400 hover:text-black flex flex-col items-center p-2 w-16 transition"><i class="fas fa-comment-alt text-xl mb-1"></i><span class="text-[10px] font-black uppercase tracking-widest">Chat</span></button>
         </div>
     </nav>
 </body>
