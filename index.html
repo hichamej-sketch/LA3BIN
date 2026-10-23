@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/@studio-freight/lenis@1.0.39/dist/lenis.min.js"></script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -9,54 +11,38 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f4f4f5; color: #09090b; -webkit-tap-highlight-color: transparent; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        body { font-family: 'Inter', sans-serif; background-color: #f4f4f5; color: #18181b; -webkit-tap-highlight-color: transparent; }
+        <!-- SECTION HERO 3D -->
+    <div id="hero-3d-container" class="relative w-full h-[120vh] bg-black">
+        <!-- Le Canvas qui va afficher la boule en fixe -->        
+        <!-- Le texte qui flotte par-dessus -->
+        <div class="absolute top-1/3 left-0 w-full text-center z-10 pointer-events-none">
+            <h1 class="text-6xl font-black text-white uppercase tracking-tighter mix-blend-difference">LA3BIN</h1>
+            <p class="text-zinc-400 text-xs font-bold uppercase tracking-widest mt-2">Scrollez vers le bas</p>
+        </div>
+    </div>
+        .scrollbar-hideD::-webkit-scrollbar { display: none; }
         
         .modal-scroll::-webkit-scrollbar { width: 5px; }
         .modal-scroll::-webkit-scrollbar-track { background: transparent; margin: 16px 0; }
         .modal-scroll::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 9999px; }
 
         .input-premium {
-            width: 100%; background-color: #f8fafc; border: 1.5px solid #e4e4e7; border-radius: 0.875rem;
-            padding: 0.7rem 0.9rem; color: #09090b; font-weight: 700; font-size: 0.8125rem; outline: none; transition: all 0.2s ease;
+            width: 100%; background-color: #f4f4f5; border: 1.5px solid #e4e4e7; border-radius: 0.875rem;
+            padding: 0.7rem 0.9rem; color: #18181b; font-weight: 700; font-size: 0.8125rem; outline: none; transition: all 0.2s ease;
         }
-        .input-premium:focus { border-color: #09090b; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+        .input-premium:focus { border-color: #52525b; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
 
         .logo-container { display: inline-flex; align-items: baseline; }
-        .logo-punct-wrapper {
-            display: inline-flex; justify-content: center; width: 0.68em; margin-left: 0.08em;
-            overflow: hidden; height: 1.1em; vertical-align: baseline;
-        }
-        .logo-punct {
-            display: inline-block;
-            transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.24s ease, color 0.24s ease;
-        }
+        .logo-punct-wrapper { display: inline-flex; justify-content: center; width: 0.68em; margin-left: 0.08em; overflow: hidden; height: 1.1em; vertical-align: baseline; }
+        .logo-punct { display: inline-block; transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.24s ease, color 0.24s ease; }
         .slide-out { transform: translateY(85%); opacity: 0; }
         .slide-in { transform: translateY(-85%); opacity: 0; }
 
-        @keyframes titleFadeBreath {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.25; transform: scale(0.97); }
-        }
+        @keyframes titleFadeBreath { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.25; transform: scale(0.97); } }
         .splash-title-fade { animation: titleFadeBreath 1.7s ease-in-out infinite; }
 
-        @keyframes rollLeftToRight {
-            0% { left: 0%; transform: translateX(0) rotate(0deg) scale(0.65); opacity: 0; }
-            15% { opacity: 1; transform: translateX(0) rotate(120deg) scale(1.15); }
-            50% { transform: translateX(-50%) rotate(360deg) scale(0.75); }
-            85% { opacity: 1; transform: translateX(-100%) rotate(600deg) scale(1.3); }
-            100% { left: 100%; transform: translateX(-100%) rotate(720deg) scale(0.6); opacity: 0; }
-        }
-        .rolling-ball-item {
-            position: absolute; top: 50%; margin-top: -18px; font-size: 1.9rem; line-height: 1;
-            animation: rollLeftToRight 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-            filter: drop-shadow(0 6px 8px rgba(0,0,0,0.12));
-        }
-
-        .bento-panel {
-            background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 1.5rem;
-            padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
+        .bento-panel { background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 1.5rem; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
 
         body.mobile-sim-mode #main-grid {
             max-width: 430px !important; grid-template-columns: 1fr !important; margin: 1rem auto !important;
@@ -64,23 +50,84 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); padding-bottom: 5.5rem !important;
         }
         body.mobile-sim-mode #mobile-bottom-nav { display: flex !important; }
+
+        /* Animation d'entrée des joueurs */
+        .player-enter { animation: slideUpFade 0.4s ease forwards; opacity: 0; transform: translateY(20px); }
+        @keyframes slideUpFade { to { opacity: 1; transform: translateY(0); } }
+
+        /* Terrain de composition d'équipe */
+        .tactical-pitch {
+            background-color: #f4f4f5;
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0,0,0,0.02) 20px, rgba(0,0,0,0.02) 40px);
+            border: 2px solid #e4e4e7;
+        }
     </style>
 </head>
-<body class="antialiased pb-28 lg:pb-10 bg-zinc-100 selection:bg-zinc-900 selection:text-white overflow-x-hidden">
-
-    <!-- SPLASH SCREEN -->
-    <div id="splash-screen" class="fixed inset-0 bg-white z-[80] flex flex-col items-center justify-center transition-opacity duration-500">
-        <h1 class="text-6xl font-black text-black tracking-tighter uppercase logo-container splash-title-fade">
-            LA3BIN<span class="logo-punct-wrapper"><span class="logo-punct" style="color: #e05a47;">?</span></span>
-        </h1>
-        <div class="w-56 h-12 relative mt-5 overflow-visible">
-            <div class="absolute bottom-1 inset-x-4 h-[2px] bg-gradient-to-r from-transparent via-zinc-200 to-transparent rounded-full"></div>
-            <div id="splash-rolling-ball" class="rolling-ball-item">⚽</div>
+<body class="antialiased pb-28 lg:pb-10 bg-zinc-50 selection:bg-zinc-900 selection:text-white overflow-x-hidden relative">
+<!-- CURSEUR PREMIUM NEGATIF -->
+    <div id="cuberto-cursor" style="position:fixed; top:0; left:0; width:10px; height:10px; background-color:white; border-radius:50%; pointer-events:none; z-index:99999; mix-blend-mode:difference; transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), width 0.2s cubic-bezier(0.25, 1, 0.5, 1), height 0.2s cubic-bezier(0.25, 1, 0.5, 1); transform: translate3d(-50%, -50%, 0);"></div>
+      <!-- MODAL AUTHENTIFICATION (Supabase) -->
+    <div id="modal-auth" class="fixed inset-0 bg-zinc-900/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-white w-full max-w-md rounded-[2.25rem] shadow-2xl overflow-hidden relative border border-zinc-200">
+            <div class="p-8 text-center bg-gradient-to-b from-zinc-50 to-white border-b border-zinc-100">
+                <h2 class="text-3xl font-black tracking-tighter text-black uppercase">Connexion</h2>
+                <p class="text-xs font-bold text-zinc-500 mt-2">Rejoignez l'arène LA3BIN.</p>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Email</label>
+                    <input type="email" id="auth-email" class="input-premium" placeholder="joueur@email.com">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Mot de passe</label>
+                    <input type="password" id="auth-password" class="input-premium" placeholder="••••••••">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="seConnecter()" id="btn-login" class="flex-1 bg-zinc-900 hover:bg-black text-white font-black text-xs py-3.5 rounded-xl uppercase tracking-widest active:scale-95 transition shadow-md">
+                        Se connecter
+                    </button>
+                    <button onclick="creerCompte()" id="btn-register" class="flex-1 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-800 font-black text-xs py-3.5 rounded-xl uppercase tracking-widest active:scale-95 transition shadow-sm">
+                        Créer compte
+                    </button>
+                </div>
+            </div>
         </div>
-        <p class="text-[10px] font-extrabold uppercase tracking-[0.25em] text-zinc-400 mt-4">Casablanca • Matchmaking</p>
+    </div>
+
+    <!-- MODAL RECHERCHE D'AVATARS -->
+    <div id="modal-avatar-search" class="hidden fixed inset-0 bg-white z-[85] flex flex-col transition-transform transform translate-y-full duration-300">
+        <div class="p-4 border-b border-zinc-200 flex items-center gap-3 bg-zinc-50">
+            <button onclick="toggleAvatarSearchModal()" class="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-zinc-200 shadow-sm text-zinc-500"><i class="fas fa-chevron-down"></i></button>
+            <h3 class="font-bold text-sm text-zinc-800 uppercase tracking-wide">Sélectionnez un avatar</h3>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 bg-zinc-100">
+            <div id="avatar-search-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-3"></div>
+        </div>
     </div>
 
     <script>
+        // =========================================================================
+        // 1. CONFIGURATION DES AVATARS PERSONNALISÉS
+        // =========================================================================
+        // Mettez vos propres liens d'images entre les guillemets.
+        // Ajoutez ou supprimez autant de lignes que vous voulez.
+        const CONFIG_AVATARS = [
+            { name: "Moi", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=f4f4f5" },
+            { name: "Karim", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jack&backgroundColor=f4f4f5" },
+            { name: "Mehdi", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Leo&backgroundColor=f4f4f5" },
+            { name: "Youssef", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jocelyn&backgroundColor=f4f4f5" },
+            { name: "Gamer", url: "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Gamer&backgroundColor=e4e4e7" },
+            { name: "Sportif", url: "https://api.dicebear.com/7.x/initials/svg?seed=SP&backgroundColor=3f3f46" }
+        ];
+
+        // Set default onboarding avatar safely
+        document.addEventListener("DOMContentLoaded", () => {
+            if(document.getElementById('onboard-avatar-preview')) {
+                document.getElementById('onboard-avatar-preview').src = CONFIG_AVATARS[0].url;
+                document.getElementById('onboard-avatar').value = CONFIG_AVATARS[0].url;
+            }
+        });
+
         // --- 0. ANIMATIONS SPLASH ---
         const PUNCT_STATES = [{ char: '?', color: '#e05a47' }, { char: '.', color: '#457b9d' }, { char: '!', color: '#2a9d8f' }];
         let punctIndex = 0;
@@ -97,20 +144,73 @@
             });
         }, 850);
 
-        const ROLLING_ITEMS = ['⚽', '🎾', '🏀', '🏈', '🏐', '⚾'];
-        let ballIndex = 0;
-        setInterval(() => {
-            const ballEl = document.getElementById('splash-rolling-ball');
-            if (ballEl) { ballIndex = (ballIndex + 1) % ROLLING_ITEMS.length; ballEl.innerText = ROLLING_ITEMS[ballIndex]; }
-        }, 600);
-
-        setTimeout(() => {
+        function masquageSplashScreen() {
             const splashScreen = document.getElementById('splash-screen');
             if (splashScreen && !splashScreen.classList.contains('hidden')) {
                 splashScreen.classList.add('opacity-0', 'pointer-events-none');
                 setTimeout(() => splashScreen.classList.add('hidden'), 500);
+                verifierOnboarding();
             }
-        }, 2600);
+        }
+        setTimeout(masquageSplashScreen, 2600);
+
+        function verifierOnboarding() {
+            if (!localStorage.getItem('la3bin_onboarding_done')) {
+                document.getElementById('modal-onboarding').classList.remove('hidden');
+            }
+        }
+
+        function terminerOnboarding() {
+            const pseudo = document.getElementById('onboard-pseudo').value.trim();
+            const avatar = document.getElementById('onboard-avatar').value;
+            if (!pseudo) return alert("Veuillez choisir un pseudo !");
+            
+            const prof = getLocalProfile();
+            prof.pseudo = pseudo;
+            prof.avatarUrl = avatar;
+            localStorage.setItem('la3bin_profile_v11', JSON.stringify(prof));
+            localStorage.setItem('la3bin_onboarding_done', 'true');
+            
+            document.getElementById('modal-onboarding').classList.add('hidden');
+            afficherProfilUI();
+        }
+
+        function toggleAvatarSearchModal() {
+            const modal = document.getElementById('modal-avatar-search');
+            const isHidden = modal.classList.contains('hidden');
+            if (isHidden) {
+                modal.classList.remove('hidden');
+                setTimeout(() => modal.classList.remove('translate-y-full'), 10);
+                chargerAvatars(); 
+            } else {
+                modal.classList.add('translate-y-full');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            }
+        }
+
+        function chargerAvatars() {
+            const grid = document.getElementById('avatar-search-grid');
+            grid.innerHTML = '';
+            CONFIG_AVATARS.forEach(av => {
+                grid.insertAdjacentHTML('beforeend', `
+                    <button onclick="selectionnerAvatarRecherche('${av.url}')" class="flex flex-col items-center gap-1.5 p-2 bg-white rounded-2xl border border-zinc-200 hover:border-black active:scale-95 transition shadow-sm">
+                        <img src="${av.url}" class="w-14 h-14 rounded-xl object-cover object-top border border-zinc-100 shadow-inner">
+                        <span class="text-[9px] font-black uppercase text-center text-zinc-700 leading-tight">${av.name}</span>
+                    </button>
+                `);
+            });
+        }
+
+        function selectionnerAvatarRecherche(url) {
+            document.getElementById('onboard-avatar').value = url;
+            document.getElementById('onboard-avatar-preview').src = url;
+            if (document.getElementById('prof-avatar')) {
+                document.getElementById('prof-avatar').value = url;
+                document.getElementById('prof-avatar-preview').src = url;
+                document.getElementById('header-avatar').src = url;
+            }
+            toggleAvatarSearchModal();
+        }
 
         // --- 1. CONNEXION SUPABASE ---
         const SUPABASE_URL = 'https://elrimadnclaawodmrsam.supabase.co';
@@ -125,34 +225,33 @@
         let isMobileSim = false;
         let userCoords = { lat: 33.5786, lng: -7.6369, isRealGps: false };
 
-        const AVATAR_PRESETS = [
-            "https://upload.wikimedia.org/wikipedia/commons/d/d7/Cristiano_Ronaldo_playing_for_Al_Nassr_FC_against_Persepolis%2C_September_2023_%28cropped%29.jpg",
-            "https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg",
-            "https://upload.wikimedia.org/wikipedia/en/0/03/Walter_White_S5B.png",
-            "https://upload.wikimedia.org/wikipedia/en/7/76/Darth_Vader_in_The_Empire_Strikes_Back.jpg",
-            "https://upload.wikimedia.org/wikipedia/en/9/9f/John_Wick_Keanu.jpeg",
-            "https://upload.wikimedia.org/wikipedia/commons/2/28/Drake_July_2016_v2.jpg"
-        ];
-
         const MOROCCAN_LEVELS = [
             { id: 'Aucun', label: 'Ma la3bch', sub: 'Non classé' },
             { id: 'Yallah Badi', label: 'Yallah Badi 🌱', sub: 'Débutant' },
             { id: 'Mssalk', label: 'Mssalk ⚡', sub: 'Régulier' },
-            { id: 'Kwayri', label: 'Kwayri 🔥', sub: 'Pro / Naybet' }
+            { id: 'Kwayri', label: 'Kwayri 🔥', sub: 'Pro / Expert' }
         ];
 
+        // COULEURS PASTEL DES CARTES + NOUVEAUX SPORTS (Running, Surf, Gaming)
         const SPORT_CONFIG = {
-            'Football': { cardBg: 'bg-[#eaf6f4]', cardBorder: 'border-[#2a9d8f]/35', iconBg: 'bg-white', text: 'text-[#1f7a6f]', badgeBg: 'bg-[#2a9d8f]', icon: 'fa-futbol', label: 'Football', subGames: [{ name: 'Foot 5v5 Urbain', defaultPlayers: 3 }, { name: 'Foot 7v7 Demi-Terrain', defaultPlayers: 5 }, { name: 'Foot 11v11 Grand Terrain', defaultPlayers: 8 }] },
-            'Padel': { cardBg: 'bg-[#fdf8ea]', cardBorder: 'border-[#d4a338]/40', iconBg: 'bg-white', text: 'text-[#a3781b]', badgeBg: 'bg-[#d4a338]', icon: 'fa-table-tennis-paddle-ball', label: 'Padel', subGames: [{ name: 'Padel Double (2v2)', defaultPlayers: 2 }, { name: 'Padel Tournoi Americano', defaultPlayers: 3 }, { name: 'Padel Entraînement', defaultPlayers: 1 }] },
-            'Basketball': { cardBg: 'bg-[#fdf0ec]', cardBorder: 'border-[#e06d47]/35', iconBg: 'bg-white', text: 'text-[#b84a27]', badgeBg: 'bg-[#e06d47]', icon: 'fa-basketball', label: 'Basketball', subGames: [{ name: 'Basket 3x3 Half-Court', defaultPlayers: 2 }, { name: 'Basket 5x5 Full-Court', defaultPlayers: 4 }] },
-            'Jeux de société': { cardBg: 'bg-[#eef4f8]', cardBorder: 'border-[#457b9d]/35', iconBg: 'bg-white', text: 'text-[#2c5875]', badgeBg: 'bg-[#457b9d]', icon: 'fa-chess-knight', label: 'Jeux & Cartes', subGames: [{ name: 'Catan / Stratégie', defaultPlayers: 2 }, { name: 'Soirée Poker Holdem', defaultPlayers: 4 }, { name: 'Loup-Garou / Mafia', defaultPlayers: 5 }, { name: 'Uno / Rami / Ronda', defaultPlayers: 2 }] }
+            'Football': { cardBg: 'bg-[#ecfdf5]', cardBorder: 'border-[#d1fae5]', iconBg: 'bg-white', text: 'text-[#0f766e]', badgeBg: 'bg-[#0f766e]', icon: 'fa-futbol', label: 'Football', subGames: [{ name: 'Foot 5v5 Urbain', defaultPlayers: 3 }, { name: 'Foot 7v7 Demi-Terrain', defaultPlayers: 5 }, { name: 'Foot 11v11 Grand Terrain', defaultPlayers: 8 }] },
+            'Padel': { cardBg: 'bg-[#fffbeb]', cardBorder: 'border-[#fef3c7]', iconBg: 'bg-white', text: 'text-[#d97706]', badgeBg: 'bg-[#d97706]', icon: 'fa-table-tennis-paddle-ball', label: 'Padel', subGames: [{ name: 'Padel Double (2v2)', defaultPlayers: 2 }, { name: 'Padel Tournoi Americano', defaultPlayers: 3 }, { name: 'Padel Entraînement', defaultPlayers: 1 }] },
+            'Musculation': { cardBg: 'bg-[#f8fafc]', cardBorder: 'border-[#e2e8f0]', iconBg: 'bg-white', text: 'text-[#475569]', badgeBg: 'bg-[#475569]', icon: 'fa-dumbbell', label: 'Musculation & Force', subGames: [{ name: 'Powerlifting (Spotter)', defaultPlayers: 1 }, { name: 'Max Day (SBD)', defaultPlayers: 2 }, { name: 'Séance Push/Pull', defaultPlayers: 1 }] },
+            'Running': { cardBg: 'bg-[#faf5ff]', cardBorder: 'border-[#e9d5ff]', iconBg: 'bg-white', text: 'text-[#7e22ce]', badgeBg: 'bg-[#7e22ce]', icon: 'fa-running', label: 'Course à pied', subGames: [{ name: 'Footing Corniche 5km', defaultPlayers: 2 }, { name: 'Fractionné Piste', defaultPlayers: 3 }, { name: 'Run Forêt 10km+', defaultPlayers: 4 }] },
+            'Surf': { cardBg: 'bg-[#eff6ff]', cardBorder: 'border-[#bfdbfe]', iconBg: 'bg-white', text: 'text-[#1d4ed8]', badgeBg: 'bg-[#1d4ed8]', icon: 'fa-water', label: 'Surf & Océan', subGames: [{ name: 'Surf Session', defaultPlayers: 2 }, { name: 'Bodyboard', defaultPlayers: 2 }] },
+            'Basketball': { cardBg: 'bg-[#fef2f2]', cardBorder: 'border-[#fee2e2]', iconBg: 'bg-white', text: 'text-[#dc2626]', badgeBg: 'bg-[#dc2626]', icon: 'fa-basketball', label: 'Basketball', subGames: [{ name: 'Basket 3x3 Half-Court', defaultPlayers: 2 }, { name: 'Basket 5x5 Full-Court', defaultPlayers: 4 }] },
+            'Gaming': { cardBg: 'bg-[#fdf4ff]', cardBorder: 'border-[#f5d0fe]', iconBg: 'bg-white', text: 'text-[#a21caf]', badgeBg: 'bg-[#a21caf]', icon: 'fa-gamepad', label: 'Gaming & Esport', subGames: [{ name: 'FC 25 / FIFA', defaultPlayers: 2 }, { name: 'Valorant Ranked', defaultPlayers: 5 }, { name: 'League of Legends', defaultPlayers: 5 }] },
+            'Jeux de société': { cardBg: 'bg-[#f0f9ff]', cardBorder: 'border-[#e0f2fe]', iconBg: 'bg-white', text: 'text-[#0369a1]', badgeBg: 'bg-[#0369a1]', icon: 'fa-chess-knight', label: 'Jeux & Cartes', subGames: [{ name: 'Catan / Stratégie', defaultPlayers: 2 }, { name: 'Soirée Poker Holdem', defaultPlayers: 4 }, { name: 'Loup-Garou / Mafia', defaultPlayers: 5 }] }
         };
 
         const CLUBS_DB = [
-            { name: "Oasis Padel Club", sport: "Padel", quartier: "Oasis", lat: 33.5542, lng: -7.6321, partner: true }, { name: "CAFC Padel", sport: "Padel", quartier: "Anfa", lat: 33.5684, lng: -7.6492, partner: true }, { name: "Padel Factory Bouskoura", sport: "Padel", quartier: "Bouskoura", lat: 33.4682, lng: -7.6489, partner: false }, { name: "City Club Padel", sport: "Padel", quartier: "Maarif", lat: 33.5750, lng: -7.6310, partner: false },
-            { name: "City Foot 5", sport: "Football", quartier: "Maarif", lat: 33.5786, lng: -7.6369, partner: true }, { name: "Green Sports Park", sport: "Football", quartier: "Bouskoura", lat: 33.4795, lng: -7.6390, partner: true }, { name: "Complexe Mohamed V", sport: "Football", quartier: "Maarif", lat: 33.5829, lng: -7.6465, partner: false },
-            { name: "Anfa Park Hoop Court", sport: "Basketball", quartier: "Anfa", lat: 33.5658, lng: -7.6625, partner: false }, { name: "Corniche Ain Diab Court", sport: "Basketball", quartier: "Ain Diab", lat: 33.5952, lng: -7.6745, partner: false },
-            { name: "Les Maîtres du Jeu Lounge", sport: "Jeux de société", quartier: "Maarif", lat: 33.5810, lng: -7.6340, partner: true }, { name: "Café Ludique Gauthier", sport: "Jeux de société", quartier: "Gauthier", lat: 33.5885, lng: -7.6324, partner: false }, { name: "Chez l'organisateur", sport: "Jeux de société", quartier: "Casablanca", lat: 33.5731, lng: -7.6298, partner: false }
+            { name: "Oasis Padel Club", sport: "Padel", quartier: "Oasis", lat: 33.5542, lng: -7.6321, partner: true }, { name: "CAFC Padel", sport: "Padel", quartier: "Anfa", lat: 33.5684, lng: -7.6492, partner: true }, 
+            { name: "City Foot 5", sport: "Football", quartier: "Maarif", lat: 33.5786, lng: -7.6369, partner: true },
+            { name: "Rabat Barbell Club", sport: "Musculation", quartier: "Rabat", lat: 34.0208, lng: -6.8416, partner: true },
+            { name: "Corniche Ain Diab", sport: "Running", quartier: "Ain Diab", lat: 33.5952, lng: -7.6745, partner: false }, { name: "Forêt de Bouskoura", sport: "Running", quartier: "Bouskoura", lat: 33.4682, lng: -7.6489, partner: false },
+            { name: "Plage Lalla Meryem", sport: "Surf", quartier: "Ain Diab", lat: 33.5960, lng: -7.6750, partner: false }, { name: "Dar Bouazza", sport: "Surf", quartier: "Dar Bouazza", lat: 33.5234, lng: -7.8012, partner: false },
+            { name: "GG Arena Esport", sport: "Gaming", quartier: "Maarif", lat: 33.5750, lng: -7.6300, partner: true },
+            { name: "Les Maîtres du Jeu Lounge", sport: "Jeux de société", quartier: "Maarif", lat: 33.5810, lng: -7.6340, partner: true }
         ];
 
         // --- 2. GPS TEMPS RÉEL ---
@@ -170,23 +269,25 @@
         function activerGpsTempsReel(activerFiltreProche = false) {
             const statusEl = document.getElementById('gps-status-badge');
             if (!navigator.geolocation) { alert("GPS non supporté."); return; }
-            if (statusEl) statusEl.innerText = "Calcul GPS...";
+            if (statusEl) statusEl.innerText = "Calcul...";
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude, isRealGps: true };
-                    if (statusEl) { statusEl.innerHTML = '<i class="fas fa-satellite-dish mr-1"></i> GPS Actif'; statusEl.className = 'text-[9px] font-extrabold text-white bg-[#2a9d8f] px-2.5 py-1 rounded-full shadow-sm'; }
+                    if (statusEl) { statusEl.innerHTML = '<i class="fas fa-satellite-dish mr-1"></i> GPS Actif'; statusEl.className = 'text-[9px] font-extrabold text-white bg-zinc-900 px-2.5 py-1 rounded-full shadow-sm'; }
                     if (activerFiltreProche && !filterAroundMe) toggleAroundMeFilter();
                     afficherRadarUrgences(); afficherFeedFiltre(); renderLieux();
                 },
                 () => {
-                    if (statusEl) { statusEl.innerText = "Maarif (Défaut)"; statusEl.className = 'text-[9px] font-extrabold text-zinc-300 bg-white/10 px-2.5 py-1 rounded-full'; }
+                    if (statusEl) { statusEl.innerText = "Maarif (Défaut)"; statusEl.className = 'text-[9px] font-extrabold text-zinc-500 bg-white/10 px-2.5 py-1 rounded-full'; }
                     if (activerFiltreProche) toggleAroundMeFilter();
                 },
                 { enableHighAccuracy: true, timeout: 6000 }
             );
         }
 
-        // --- 3. GESTION DU PROFIL ---
+        // --- 3. GESTION POP-UP PROFIL & AGENDA ---
+        let agendaDispo = { lun: true, mar: false, mer: true, jeu: false, ven: true, sam: false, dim: false };
+
         function toggleModalGeneric(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) modal.classList.toggle('hidden');
@@ -197,88 +298,33 @@
             else { afficherProfilUI(); toggleModalGeneric('modal-account'); }
         }
 
-        function toggleVestiaireModal() {
-            if (document.getElementById('modal-vestiaire').classList.contains('hidden')) chargerDashboardModal();
-            toggleModalGeneric('modal-vestiaire');
-        }
-
         function genererIdUnique(prenom) {
             const num = Math.floor(Math.random() * 900) + 100;
             return `#LA3-${prenom.substring(0,4).toUpperCase()}-${num}`;
         }
 
-        function copierID() {
-            const idText = document.getElementById('prof-id-badge').innerText;
-            navigator.clipboard.writeText(idText);
-            const btn = document.getElementById('btn-copy-id');
-            btn.innerHTML = '<i class="fas fa-check text-emerald-500"></i>';
-            setTimeout(() => { btn.innerHTML = '<i class="far fa-copy"></i>'; }, 2000);
-        }
-
         function getLocalProfile() {
-            const raw = localStorage.getItem('la3bin_profile_v8');
-            if (raw) return JSON.parse(raw);
+            const raw = localStorage.getItem('la3bin_profile_v11');
+            if (raw) {
+                const prof = JSON.parse(raw);
+                if(prof.agenda) agendaDispo = prof.agenda;
+                return prof;
+            }
             
             return {
-                nom: 'EL JAMALI', prenom: 'Hicham', pseudo: 'Hicham_EJ', idUnique: genererIdUnique('Hicham'),
-                ageGroup: '18-35', cinNumber: '', cinVerified: false, mvpCount: 3, streakFlame: 4,
-                avatarUrl: AVATAR_PRESETS[0], quartier: 'Maarif / Anfa',
-                status: 'Dispo ce soir', favorites: ['Football', 'Padel'],
-                skills: { 'Football': 'Mssalk', 'Padel': 'Mssalk', 'Basketball': 'Aucun', 'Jeux de société': 'Kwayri' }
+                nom: '', prenom: '', pseudo: 'Joueur_Anonyme', idUnique: genererIdUnique('Anon'),
+                ageGroup: '18-35', cinNumber: '', cinVerified: false, mvpCount: 0, streakFlame: 1,
+                avatarUrl: CONFIG_AVATARS[0].url, quartier: 'Maarif / Anfa',
+                agenda: agendaDispo, favorites: ['Football'],
+                skills: { 'Football': 'Mssalk', 'Padel': 'Yallah Badi', 'Running': 'Aucun', 'Jeux de société': 'Aucun' }
             };
-        }
-
-        function choisirAvatarPreset(url) {
-            document.getElementById('prof-avatar').value = url;
-            document.getElementById('prof-avatar-preview').src = url;
-            document.getElementById('header-avatar').src = url;
-            document.querySelectorAll('.avatar-preset-btn').forEach(btn => {
-                btn.classList.toggle('ring-4', btn.dataset.url === url); 
-                btn.classList.toggle('ring-[#e05a47]', btn.dataset.url === url);
-                btn.classList.toggle('border-none', btn.dataset.url === url);
-                btn.classList.toggle('scale-110', btn.dataset.url === url);
-            });
-        }
-
-        function uploaderPhotoLocale(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) { choisirAvatarPreset(e.target.result); };
-            reader.readAsDataURL(file);
         }
 
         function setSkillLevel(sport, levelId) {
             const prof = getLocalProfile();
             prof.skills[sport] = (prof.skills[sport] === levelId) ? 'Aucun' : levelId;
-            localStorage.setItem('la3bin_profile_v8', JSON.stringify(prof));
+            localStorage.setItem('la3bin_profile_v11', JSON.stringify(prof));
             renderSkillSelectors(prof.skills);
-        }
-
-        function toggleFavorite(sport) {
-            const prof = getLocalProfile();
-            if (prof.favorites.includes(sport)) {
-                prof.favorites = prof.favorites.filter(s => s !== sport);
-            } else {
-                prof.favorites.push(sport);
-            }
-            localStorage.setItem('la3bin_profile_v8', JSON.stringify(prof));
-            renderFavorites(prof.favorites);
-        }
-
-        function renderFavorites(favorites) {
-            const container = document.getElementById('favorites-box');
-            if (!container) return;
-            container.innerHTML = '';
-            Object.keys(SPORT_CONFIG).forEach(sport => {
-                const cfg = SPORT_CONFIG[sport];
-                const isActive = favorites.includes(sport);
-                container.insertAdjacentHTML('beforeend', `
-                    <button type="button" onclick="toggleFavorite('${sport}')" class="px-3 py-2 rounded-xl border font-black text-[10px] uppercase transition-all flex items-center gap-1.5 ${isActive ? 'bg-black text-white border-black' : 'bg-white text-zinc-400 border-zinc-200 hover:border-zinc-400'}">
-                        <i class="fas ${cfg.icon} ${isActive ? 'text-orange-500' : ''}"></i> ${sport}
-                    </button>
-                `);
-            });
         }
 
         function renderSkillSelectors(skills) {
@@ -296,28 +342,51 @@
                 }).join('');
                 container.insertAdjacentHTML('beforeend', `
                     <div class="bg-zinc-50/90 p-3 rounded-2xl border border-zinc-200/80 transition ${isNone ? 'opacity-70' : ''}">
-                        <div class="flex items-center justify-between mb-2"><span class="text-xs font-extrabold text-zinc-800"><i class="fas ${cfg.icon} ${cfg.text} mr-1.5"></i>${cfg.label}</span><span class="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${isNone ? 'bg-zinc-200 text-zinc-500' : cfg.cardBg + ' ' + cfg.text}">${isNone ? 'Ma la3bch' : currentLevel}</span></div>
+                        <div class="flex items-center justify-between mb-2"><span class="text-xs font-extrabold text-zinc-800"><i class="fas ${cfg.icon} ${cfg.text} mr-1.5"></i>${cfg.label}</span><span class="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${isNone ? 'bg-zinc-200 text-zinc-500' : 'bg-zinc-900 text-white'}">${isNone ? 'Ma la3bch' : currentLevel}</span></div>
                         <div class="grid grid-cols-4 gap-1.5">${btns}</div>
                     </div>`);
             });
         }
 
+        function renderAgendaGrid() {
+            const grid = document.getElementById('agenda-days-container');
+            if(!grid) return;
+            grid.innerHTML = '';
+            const jours = [
+                { key: 'lun', label: 'Lu' }, { key: 'mar', label: 'Ma' }, { key: 'mer', label: 'Me' },
+                { key: 'jeu', label: 'Je' }, { key: 'ven', label: 'Ve' }, { key: 'sam', label: 'Sa' }, { key: 'dim', label: 'Di' }
+            ];
+            
+            jours.forEach(j => {
+                const isActive = agendaDispo[j.key];
+                grid.insertAdjacentHTML('beforeend', `
+                    <button type="button" onclick="toggleAgenda('${j.key}')" class="flex-1 h-10 flex items-center justify-center rounded-xl text-[10px] font-black uppercase transition ${isActive ? 'bg-zinc-900 text-white border border-zinc-900 shadow-sm' : 'bg-white text-zinc-500 border border-zinc-200 hover:bg-zinc-50'}">
+                        ${j.label}
+                    </button>
+                `);
+            });
+        }
+
+        function toggleAgenda(jour) {
+            agendaDispo[jour] = !agendaDispo[jour];
+            renderAgendaGrid();
+        }
+
         function saveLocalProfile() {
             const current = getLocalProfile();
-            const nom = document.getElementById('prof-nom').value.trim() || 'EL JAMALI';
-            const prenom = document.getElementById('prof-prenom').value.trim() || 'Hicham';
-            
             const prof = {
-                ...current, nom, prenom,
-                pseudo: document.getElementById('prof-pseudo').value.trim() || prenom,
+                ...current,
+                nom: document.getElementById('prof-nom').value.trim(),
+                prenom: document.getElementById('prof-prenom').value.trim(),
+                pseudo: document.getElementById('prof-pseudo').value.trim() || current.pseudo,
                 ageGroup: document.getElementById('prof-age').value,
                 cinNumber: document.getElementById('prof-cin').value.trim(),
                 cinVerified: document.getElementById('prof-cin').value.trim().length >= 5,
-                avatarUrl: document.getElementById('prof-avatar').value.trim() || AVATAR_PRESETS[0],
+                avatarUrl: document.getElementById('prof-avatar').value.trim() || current.avatarUrl,
                 quartier: document.getElementById('prof-quartier').value,
-                status: document.getElementById('prof-status').value
+                agenda: agendaDispo
             };
-            localStorage.setItem('la3bin_profile_v8', JSON.stringify(prof));
+            localStorage.setItem('la3bin_profile_v11', JSON.stringify(prof));
             if (currentUser) {
                 client.from('profiles').upsert({ id: currentUser.id, username: prof.pseudo, avatar_url: prof.avatarUrl });
             }
@@ -327,52 +396,47 @@
 
         function afficherProfilUI() {
             const prof = getLocalProfile();
-            document.getElementById('prof-id-badge').innerText = prof.idUnique;
-            document.getElementById('prof-pseudo').value = prof.pseudo;
-            document.getElementById('prof-nom').value = prof.nom;
-            document.getElementById('prof-prenom').value = prof.prenom;
-            document.getElementById('prof-age').value = prof.ageGroup;
-            document.getElementById('prof-cin').value = prof.cinNumber;
-            document.getElementById('prof-avatar').value = prof.avatarUrl;
-            document.getElementById('prof-quartier').value = prof.quartier;
-            document.getElementById('prof-status').value = prof.status;
             
-            document.getElementById('header-avatar').src = prof.avatarUrl;
-            document.getElementById('header-username').innerText = prof.pseudo;
-            document.getElementById('prof-avatar-preview').src = prof.avatarUrl;
-            document.getElementById('prof-mvp-count').innerText = prof.mvpCount;
-            document.getElementById('prof-streak-flame').innerText = prof.streakFlame || 4;
+            const safelySetText = (id, text) => { const el = document.getElementById(id); if(el) el.innerText = text; };
+            const safelySetValue = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+            const safelySetSrc = (id, src) => { const el = document.getElementById(id); if(el) el.src = src; };
 
-            const gal = document.getElementById('avatar-presets-grid');
-            if (gal) {
-                gal.innerHTML = '';
-                AVATAR_PRESETS.forEach(url => {
-                    const isSel = prof.avatarUrl === url;
-                    gal.insertAdjacentHTML('beforeend', `
-                        <button type="button" data-url="${url}" onclick="choisirAvatarPreset('${url}')" class="avatar-preset-btn w-12 h-12 rounded-xl overflow-hidden bg-zinc-200 border hover:scale-110 transition shadow-sm ${isSel ? 'ring-4 ring-[#e05a47] border-none scale-110' : 'border-zinc-300'}">
-                            <img src="${url}" class="w-full h-full object-cover object-top" alt="Avatar Pop Culture">
-                        </button>
-                    `);
-                });
-            }
+            safelySetText('prof-id-badge', prof.idUnique);
+            safelySetValue('prof-pseudo', prof.pseudo);
+            safelySetValue('prof-nom', prof.nom);
+            safelySetValue('prof-prenom', prof.prenom);
+            safelySetValue('prof-age', prof.ageGroup);
+            safelySetValue('prof-cin', prof.cinNumber);
+            safelySetValue('prof-avatar', prof.avatarUrl);
+            safelySetValue('prof-quartier', prof.quartier);
+            
+            safelySetSrc('header-avatar', prof.avatarUrl);
+            safelySetText('header-username', prof.pseudo);
+            safelySetSrc('prof-avatar-preview', prof.avatarUrl);
+            
+            safelySetText('prof-mvp-count', prof.mvpCount);
+            safelySetText('prof-streak-flame', prof.streakFlame || 4);
+
             renderSkillSelectors(prof.skills);
-            renderFavorites(prof.favorites);
+            renderAgendaGrid();
 
             const cinBadge = document.getElementById('cin-status-badge');
-            if (prof.cinVerified) {
-                cinBadge.innerHTML = '<i class="fas fa-check-circle mr-1"></i> CIN Vérifiée';
-                cinBadge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 mt-1';
-            } else {
-                cinBadge.innerHTML = '<i class="fas fa-clock mr-1"></i> CIN Non Vérifiée';
-                cinBadge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-amber-50 text-amber-700 border border-amber-200 mt-1';
+            if (cinBadge) {
+                if (prof.cinVerified) {
+                    cinBadge.innerHTML = '<i class="fas fa-check-circle mr-1"></i> CIN Vérifiée';
+                    cinBadge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-zinc-200 text-zinc-800 border border-zinc-300 mt-1';
+                } else {
+                    cinBadge.innerHTML = '<i class="fas fa-clock mr-1"></i> CIN Non Vérifiée';
+                    cinBadge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-zinc-100 text-zinc-500 border border-zinc-200 mt-1';
+                }
             }
         }
 
         // --- 4. MODULE AMIS & FLAMMES ---
         const MOCK_FRIENDS = [
-            { name: "Karim B.", activity: "Padel", time: "Ce soir 19:00", place: "Oasis Padel Club", flame: 5 },
-            { name: "Mehdi T.", activity: "Football", time: "Demain 20:30", place: "City Foot 5", flame: 3 },
-            { name: "Youssef Z.", activity: "Jeux de société", time: "Vendredi 21:00", place: "Les Maîtres du Jeu", flame: 7 }
+            { name: "Karim B.", activity: "Padel", time: "Ce soir 19:00", place: "Oasis Padel Club", flame: 5, avatar: CONFIG_AVATARS[1]?.url },
+            { name: "Mehdi T.", activity: "Running", time: "Demain 07:00", place: "Corniche", flame: 3, avatar: CONFIG_AVATARS[2]?.url },
+            { name: "Youssef Z.", activity: "Gaming", time: "Vendredi 21:00", place: "En ligne", flame: 7, avatar: CONFIG_AVATARS[3]?.url }
         ];
 
         function renderFriendsWidget() {
@@ -383,7 +447,7 @@
                 container.insertAdjacentHTML('beforeend', `
                     <div class="bg-zinc-50/90 p-3 rounded-2xl border border-zinc-200/80 flex justify-between items-center">
                         <div class="flex items-center gap-2.5">
-                            <div class="w-8 h-8 rounded-full bg-zinc-900 text-white font-black text-xs flex items-center justify-center shadow-sm">${f.name[0]}</div>
+                            <img src="${f.avatar}" class="w-9 h-9 rounded-full object-cover border border-zinc-300 shadow-sm bg-white">
                             <div>
                                 <h4 class="font-black text-xs text-black">${f.name} <span class="text-orange-500 font-extrabold ml-1">🔥 ${f.flame}j</span></h4>
                                 <p class="text-[10px] font-semibold text-zinc-500">${f.activity} • ${f.place}</p>
@@ -395,7 +459,23 @@
             });
         }
 
-        // --- 5. MENUS DÉROULANTS ---
+        // --- 5. MENUS DÉROULANTS & SIMULATEUR ---
+        function toggleMobileSimulator() {
+            isMobileSim = !isMobileSim;
+            document.body.classList.toggle('mobile-sim-mode', isMobileSim);
+            const btn = document.getElementById('btn-sim-mobile');
+            if (isMobileSim) {
+                btn.innerHTML = '<i class="fas fa-desktop mr-1.5"></i> Vue PC';
+                switchMobileTab('feed');
+            } else {
+                btn.innerHTML = '<i class="fas fa-mobile-screen-button mr-1.5"></i> Vue Mobile';
+                ['panel-left-col', 'panel-feed'].forEach(p => {
+                    const el = document.getElementById(p);
+                    if (el) el.classList.remove('hidden');
+                });
+            }
+        }
+
         function toggleCustomDropdown(id, forceOpen = false) {
             const target = document.getElementById(id);
             const isHidden = target.classList.contains('hidden');
@@ -469,56 +549,92 @@
             renderLieux(); renderFriendsWidget();
         });
 
-        // --- 6. AUTH & NAVIGATION ---
-        client.auth.onAuthStateChange((event, session) => {
-            const authScreen = document.getElementById('screen-auth');
-            if (session) {
-                currentUser = session.user;
-                authScreen.classList.add('opacity-0', 'pointer-events-none');
-                setTimeout(() => authScreen.classList.add('hidden'), 300);
-                afficherProfilUI();
-                rafraichirTout();
-            } else {
-                currentUser = null;
-                authScreen.classList.remove('hidden');
-                setTimeout(() => authScreen.classList.remove('opacity-0', 'pointer-events-none'), 10);
+       // --- 6. AUTH & NAVIGATION ---
+        const modalAuth = document.getElementById('modal-auth');
+
+        // On vérifie que Supabase s'est bien chargé
+        if (typeof client === 'undefined') {
+            console.error("Supabase n'est pas initialisé !");
+        }
+
+        client.auth.onAuthStateChange(async (event, session) => {
+            try {
+                if (session) {
+                    currentUser = session.user;
+                    if (modalAuth) {
+                        modalAuth.classList.add('opacity-0', 'pointer-events-none');
+                        setTimeout(() => modalAuth.classList.add('hidden'), 300);
+                    }
+                    
+                    const prof = getLocalProfile();
+                    await client.from('profiles').upsert({ 
+                        id: currentUser.id, 
+                        username: prof.pseudo, 
+                        avatar_url: prof.avatarUrl 
+                    });
+
+                    afficherProfilUI();
+                    rafraichirTout();
+                } else {
+                    currentUser = null;
+                    if (modalAuth) {
+                        modalAuth.classList.remove('hidden');
+                        setTimeout(() => modalAuth.classList.remove('opacity-0', 'pointer-events-none'), 10);
+                    }
+                }
+            } catch (err) {
+                console.error("Erreur de session:", err);
             }
         });
 
         async function creerCompte() {
-            const email = document.getElementById('auth-email').value; const password = document.getElementById('auth-password').value;
-            if (!email || !password) return alert("Remplissez email et mot de passe.");
-            document.getElementById('btn-register').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            const { error } = await client.auth.signUp({ email, password });
-            document.getElementById('btn-register').innerHTML = 'Créer un compte';
-            if (error) alert("❌ " + error.message);
-        }
-
-        async function seConnecter() {
-            const email = document.getElementById('auth-email').value; const password = document.getElementById('auth-password').value;
-            if (!email || !password) return alert("Remplissez vos identifiants.");
-            document.getElementById('btn-login').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            const { error } = await client.auth.signInWithPassword({ email, password });
-            document.getElementById('btn-login').innerHTML = 'Se connecter';
-            if (error) alert("❌ Identifiants incorrects.");
-        }
-
-        async function seDeconnecter() { await client.auth.signOut(); }
-
-        function toggleMobileSimulator() {
-            isMobileSim = !isMobileSim;
-            document.body.classList.toggle('mobile-sim-mode', isMobileSim);
-            const btn = document.getElementById('btn-sim-mobile');
-            if (isMobileSim) {
-                btn.innerHTML = '<i class="fas fa-desktop mr-1.5"></i> Vue PC';
-                btn.className = 'hidden lg:flex items-center bg-[#e05a47] text-white text-xs font-extrabold uppercase tracking-wider px-3.5 py-2 rounded-xl transition';
-            } else {
-                btn.innerHTML = '<i class="fas fa-mobile-screen-button mr-1.5"></i> Vue Mobile';
-                btn.className = 'hidden lg:flex items-center bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-extrabold uppercase tracking-wider px-3.5 py-2 rounded-xl transition';
+            try {
+                const email = document.getElementById('auth-email').value.trim();
+                const password = document.getElementById('auth-password').value;
+                if (!email || !password) return alert("⚠️ Remplissez email et mot de passe.");
+                
+                const btn = document.getElementById('btn-register');
+                btn.innerHTML = 'Patientez...';
+                
+                const { data, error } = await client.auth.signUp({ email, password });
+                btn.innerHTML = 'Créer compte';
+                
+                if (error) alert("❌ " + error.message);
+                else alert("✅ Compte créé ! Connectez-vous maintenant.");
+            } catch (err) {
+                console.error("Crash creerCompte:", err);
+                alert("❌ Erreur interne. Regardez la console (F12).");
             }
         }
 
+        async function seConnecter() {
+            try {
+                const email = document.getElementById('auth-email').value.trim();
+                const password = document.getElementById('auth-password').value;
+                if (!email || !password) return alert("⚠️ Remplissez vos identifiants.");
+                
+                const btn = document.getElementById('btn-login');
+                btn.innerHTML = 'Patientez...';
+                
+                const { error } = await client.auth.signInWithPassword({ email, password });
+                btn.innerHTML = 'Se connecter';
+                
+                if (error) alert("❌ Identifiants incorrects.");
+            } catch (err) {
+                console.error("Crash seConnecter:", err);
+                alert("❌ Erreur interne. Regardez la console (F12).");
+            }
+        }
+
+        async function seDeconnecter() {
+            await client.auth.signOut();
+            location.reload(); 
+        }
+
         function switchMobileTab(tab) {
+            if (tab === 'manage') { toggleModalGeneric('modal-mes-matchs'); chargerMesMatchs(); return; }
+            if (tab === 'account') { toggleAccountModal(); return; }
+            
             const map = { 'radar': 'panel-left-col', 'feed': 'panel-feed' };
             Object.keys(map).forEach(k => {
                 const el = document.getElementById(map[k]);
@@ -528,68 +644,253 @@
             });
             ['radar', 'feed', 'manage'].forEach(t => {
                 const btn = document.getElementById(`mnav-${t}`);
-                if (btn) btn.className = (t === tab) ? 'text-black flex flex-col items-center p-2 w-16 active:scale-90 transition-all' : 'text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90 transition-all';
+                if (btn) btn.className = (t === tab) ? 'text-zinc-900 flex flex-col items-center p-2 w-16 active:scale-90 transition-all relative' : 'text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90 transition-all relative';
             });
         }
 
         function toggleModal() { document.getElementById('modal-organiser').classList.toggle('hidden'); }
 
-        // --- 7. CHAT & VOTE MVP ---
-        let currentChatGameId = null;
-        function ouvrirChatRDV(gameId, titreMatch) {
-            currentChatGameId = gameId; document.getElementById('chat-rdv-titre').innerText = titreMatch;
-            afficherMessagesRDV(gameId); document.getElementById('modal-chat').classList.remove('translate-y-full');
+   // --- 7. DÉTAILS MATCH ---
+        function ouvrirDetailsMatch(gameId) {
+            try {
+                const partie = allGamesCache.find(g => String(g.id) === String(gameId));
+                if (!partie) return alert("❌ Match introuvable dans le cache.");
+                
+                const cfg = SPORT_CONFIG[partie.activity_type] || SPORT_CONFIG['Football'];
+                
+                // Sécurisation de Supabase JSONB
+                let meta = { subGame: null, ageBracket: '18-35', priceMad: 50, hostSkill: 'Mssalk' };
+                if (typeof partie.notes === 'object' && partie.notes !== null) meta = partie.notes;
+                else if (typeof partie.notes === 'string' && partie.notes.startsWith('{')) meta = JSON.parse(partie.notes);
+
+                const d = new Date(partie.game_time);
+                const dateStr = d.toLocaleDateString('fr-FR', { weekday:'long', day: '2-digit', month: 'long' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                
+                document.getElementById('detail-icon').className = `fas ${cfg.icon} ${cfg.text}`;
+                document.getElementById('detail-icon-box').className = `w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border ${cfg.cardBorder} ${cfg.iconBg} shadow-sm`;
+                document.getElementById('detail-title').innerText = meta.subGame || partie.activity_type;
+                document.getElementById('detail-location').innerText = partie.location_name;
+                document.getElementById('detail-time').innerText = dateStr;
+                
+                document.getElementById('detail-price').innerHTML = meta.priceMad > 0 ? `${meta.priceMad} DH 💰` : 'Gratuit 💰';
+                document.getElementById('detail-age').innerText = meta.ageBracket + ' ans';
+                document.getElementById('detail-level').innerText = meta.hostSkill || 'Tous niveaux';
+                document.getElementById('detail-places').innerText = partie.players_needed;
+
+                const btnSolo = document.getElementById('detail-action-btn');
+                if (btnSolo) {
+                    btnSolo.innerHTML = `Rejoindre (Solo) ${meta.priceMad > 0 ? '• ' + meta.priceMad + ' DH 💰' : ''}`;
+                    btnSolo.onclick = () => rejoindrePartie(gameId, btnSolo, meta.priceMad);
+                }
+
+                const btnGroup = document.getElementById('detail-group-btn');
+        if (btnGroup) {
+            btnGroup.onclick = () => ouvrirModalGroupe(gameId, meta.priceMad, partie.players_needed);
         }
 
-        function fermerChat() { document.getElementById('modal-chat').classList.add('translate-y-full'); }
+                const modal = document.getElementById('modal-match-details');
+                if (!modal) return alert("❌ CRASH : Le modal HTML est introuvable. Vous l'avez effacé par erreur.");
+                
+                modal.classList.remove('hidden');
+                setTimeout(() => modal.classList.remove('translate-y-full'), 10);
 
-        function afficherMessagesRDV(gameId) {
-            const box = document.getElementById('chat-messages-box'); const raw = localStorage.getItem('la3bin_chat_' + gameId);
-            const msgs = raw ? JSON.parse(raw) : [{ sender: 'LA3BIN', text: 'Salon ouvert. Bon match !', time: 'Info' }];
-            box.innerHTML = '';
-            msgs.forEach(m => {
-                const isMe = m.sender === 'Moi';
-                box.insertAdjacentHTML('beforeend', `<div class="${isMe ? 'self-end bg-zinc-900 text-white rounded-tr-none' : 'self-start bg-white border border-zinc-200 text-black rounded-tl-none'} p-3.5 rounded-2xl shadow-sm mb-3 max-w-[80%]"><p class="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">${m.sender}</p><p class="text-xs font-semibold">${m.text}</p></div>`);
+            } catch (err) {
+                console.error("Crash ouverture modal:", err);
+                alert("❌ Erreur de script : " + err.message);
+            }
+        }
+
+        function fermerDetailsMatch() { 
+            const modal = document.getElementById('modal-match-details');
+            modal.classList.add('translate-y-full');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        // --- 8. VESTIAIRE (COMPOSITION D'ÉQUIPE TACTIQUE) ---
+        function ouvrirVestiaireEquipe(gameId, title) {
+            try {
+                // Fermer "Mes Matchs" si c'est ouvert
+                const mesMatchs = document.getElementById('modal-mes-matchs');
+                if(mesMatchs && !mesMatchs.classList.contains('hidden')) {
+                    mesMatchs.classList.add('hidden');
+                }
+
+                document.getElementById('vestiaire-equipe-titre').innerText = "Composition : " + title;
+                
+                // CORRECTION : On enlève "hidden" d'abord
+                const modal = document.getElementById('modal-vestiaire-equipe');
+                modal.classList.remove('hidden');
+                setTimeout(() => modal.classList.remove('translate-y-full'), 10);
+                
+                chargerJoueursVestiaire(gameId);
+            } catch (err) {
+                console.error("Erreur ouverture vestiaire:", err);
+                alert("❌ Erreur: " + err.message);
+            }
+        }
+
+        function fermerVestiaireEquipe() {
+            const modal = document.getElementById('modal-vestiaire-equipe');
+            modal.classList.add('translate-y-full');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+        async function chargerJoueursVestiaire(gameId) {
+            const pitch = document.getElementById('vestiaire-players-pitch');
+            pitch.innerHTML = '<div class="w-full text-center text-zinc-400 py-10"><i class="fas fa-spinner fa-spin text-2xl"></i></div>';
+            
+            // Requête Supabase pour récupérer les participants ET les invités
+            const { data, error } = await client.from('games').select(`
+                *,
+                game_participants (
+                    id, 
+                    status, 
+                    guest_name,
+                    profiles ( username, avatar_url )
+                )
+            `).eq('id', gameId).single();
+            
+            pitch.innerHTML = '';
+
+            if (error || !data || !data.game_participants) {
+                pitch.innerHTML = '<div class="text-zinc-500 text-xs font-bold w-full text-center py-5">Erreur de chargement du vestiaire.</div>';
+                return;
+            }
+
+            const participants = data.game_participants;
+
+            if (participants.length === 0) {
+                pitch.innerHTML = '<div class="text-zinc-400 text-xs font-bold w-full text-center py-5">Le vestiaire est vide.</div>';
+                return;
+            }
+
+            participants.forEach(p => {
+                // Détection si c'est un invité ou un vrai compte
+                const isGuest = !!p.guest_name;
+                const name = isGuest ? p.guest_name : (p.profiles?.username || "Joueur");
+                
+                // Avatar générique gris pour l'invité, vrai avatar pour le joueur inscrit
+                const avatar = isGuest 
+                    ? "https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Guest&backgroundColor=e4e4e7" 
+                    : (p.profiles?.avatar_url || CONFIG_AVATARS[0].url);
+                    
+                const tag = isGuest ? "Invité" : "Confirmé";
+                const tagColor = isGuest ? "text-zinc-500" : "text-emerald-600";
+                const tagIcon = isGuest ? "fa-user-secret" : "fa-check-circle";
+                
+                pitch.insertAdjacentHTML('beforeend', `
+                    <div class="flex flex-col items-center p-1.5 player-enter">
+                        <img src="${avatar}" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover object-top border-2 border-white shadow-lg bg-zinc-50 relative z-10">
+                        <span class="bg-zinc-900 text-white text-[8px] sm:text-[9px] font-black px-2 py-0.5 rounded shadow-sm mt-1 truncate max-w-[70px] text-center">${name}</span>
+                        <span class="text-[7px] ${tagColor} font-bold mt-0.5"><i class="fas ${tagIcon}"></i> ${tag}</span>
+                    </div>
+                `);
             });
         }
 
-        function envoyerMessageRDV() {
-            const inp = document.getElementById('chat-input-text'); const txt = inp.value.trim();
-            if (!txt || !currentChatGameId) return;
-            const key = 'la3bin_chat_' + currentChatGameId; const msgs = JSON.parse(localStorage.getItem(key) || '[]');
-            msgs.push({ sender: 'Moi', text: txt, time: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) });
-            localStorage.setItem(key, JSON.stringify(msgs)); inp.value = ''; afficherMessagesRDV(currentChatGameId);
+        // --- 9. CHAT (Avec Quick Replies) ---
+        function ouvrirChatVestiaire() {
+            fermerVestiaireEquipe();
+            document.getElementById('modal-chat').classList.remove('translate-y-full');
+            afficherMessagesChat();
         }
 
-        function voterMVPAnonyme(gameId, playerPseudo, btn) {
-            const voteKey = `mvp_voted_${gameId}`;
-            if (localStorage.getItem(voteKey)) return alert("🔒 Déjà voté pour ce match.");
-            localStorage.setItem(voteKey, playerPseudo);
-            btn.innerHTML = '<i class="fas fa-check mr-1"></i> Voté'; btn.className = 'bg-zinc-200 text-zinc-600 text-[9px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-lg cursor-default';
-            const prof = getLocalProfile(); prof.mvpCount = (prof.mvpCount || 3) + 1;
-            localStorage.setItem('la3bin_profile_v8', JSON.stringify(prof)); afficherProfilUI();
+        function fermerChat() {
+            document.getElementById('modal-chat').classList.add('translate-y-full');
         }
 
-        // --- 8. CREATION MATCH ---
+        function envoyerMessageRapide(txt) {
+            document.getElementById('chat-input-text').value = txt;
+            envoyerMessageChat();
+        }
+
+        function envoyerMessageChat() {
+            const inp = document.getElementById('chat-input-text'); 
+            const txt = inp.value.trim();
+            if(!txt) return;
+            
+            const box = document.getElementById('chat-messages-box');
+            box.insertAdjacentHTML('beforeend', `
+                <div class="player-enter self-end bg-zinc-800 text-white p-3 rounded-2xl rounded-tr-none shadow-sm mb-2 max-w-[80%]">
+                    <p class="text-[11px] font-medium">${txt}</p>
+                </div>
+            `);
+            inp.value = '';
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function afficherMessagesChat() {
+            const box = document.getElementById('chat-messages-box');
+            box.innerHTML = `
+                <div class="self-start bg-white border border-zinc-200 text-zinc-800 p-3 rounded-2xl rounded-tl-none shadow-sm mb-2 max-w-[80%]">
+                    <p class="text-[8px] font-bold text-zinc-400 mb-0.5">Karim_Def</p>
+                    <p class="text-[11px] font-medium">Je ramène le ballon.</p>
+                </div>
+            `;
+        }
+
+        // --- 10. CREATION MATCH ---
         async function creerPartie() {
-            const sport = document.getElementById('input-sport').value; const subGame = document.getElementById('input-subgame').value || sport;
-            const date = document.getElementById('input-date').value; const time = document.getElementById('input-time').value;
-            const lieu = document.getElementById('input-lieu').value; const playersNeeded = parseInt(document.getElementById('input-players').value) || 2;
-            const ageBracket = document.getElementById('input-age-bracket').value; const priceMad = parseInt(document.getElementById('input-price').value) || 0;
-            const validation = document.getElementById('input-validation').checked; const friendsOnly = document.getElementById('input-friends-only')?.checked || false;
+            try {
+                const sport = document.getElementById('input-sport').value; 
+                const subGame = document.getElementById('input-subgame').value || sport;
+                const date = document.getElementById('input-date').value; 
+                const time = document.getElementById('input-time').value;
+                const lieu = document.getElementById('input-lieu').value; 
+                
+                if(!sport || !date || !time || !lieu) {
+                    return alert("⚠️ Remplissez Activité, Date, Heure et Lieu.");
+                }
 
-            if(!sport || !date || !time || !lieu) return alert("⚠️ Remplissez Activité, Date, Heure et Lieu.");
+                const playersNeeded = parseInt(document.getElementById('input-players').value) || 2;
+                const ageBracket = document.getElementById('input-age-bracket').value; 
+                const priceMad = parseInt(document.getElementById('input-price').value) || 0;
+                
+                const validationEl = document.getElementById('input-validation');
+                const friendsOnlyEl = document.getElementById('input-friends-only');
+                const validation = validationEl ? validationEl.checked : true;
+                const friendsOnly = friendsOnlyEl ? friendsOnlyEl.checked : false;
 
-            const prof = getLocalProfile();
-            const hostSkill = (prof.skills && prof.skills[sport]) ? prof.skills[sport] : 'Mssalk';
+                const prof = getLocalProfile();
+                const hostSkill = (prof.skills && prof.skills[sport]) ? prof.skills[sport] : 'Mssalk';
+                const metadata = JSON.stringify({ subGame, ageBracket, priceMad, validation, hostSkill, friendsOnly, hostCinVerified: prof.cinVerified });
+                
+                // Création de la date sécurisée
+                const gameTime = new Date(`${date}T${time}:00`).toISOString();
+                
+                const btn = document.getElementById('btn-creer');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publication...';
 
-            const metadata = JSON.stringify({ subGame, ageBracket, priceMad, validation, hostSkill, friendsOnly, hostCinVerified: prof.cinVerified });
-            const gameTime = new Date(`${date}T${time}:00`).toISOString();
-            document.getElementById('btn-creer').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publication...';
+                if(!currentUser) {
+                    alert("❌ Vous devez être connecté.");
+                    btn.innerHTML = 'Publier le Match';
+                    return;
+                }
 
-            const { error } = await client.from('games').insert([{ host_id: currentUser.id, activity_type: sport, location_name: lieu, game_time: gameTime, players_needed: playersNeeded, notes: metadata }]);
-            document.getElementById('btn-creer').innerHTML = 'Publier le Match';
-            if (error) alert("❌ " + error.message); else { toggleModal(); rafraichirTout(); }
+                // Insertion Supabase
+                const { error } = await client.from('games').insert([{ 
+                    host_id: currentUser.id, 
+                    activity_type: sport, 
+                    location_name: lieu, 
+                    game_time: gameTime, 
+                    players_needed: playersNeeded, 
+                    notes: metadata 
+                }]);
+                
+                if (error) {
+                    console.error("Supabase Error:", error);
+                    alert("❌ Erreur serveur: " + error.message);
+                } else { 
+                    toggleModal(); 
+                    rafraichirTout(); 
+                }
+                
+                btn.innerHTML = 'Publier le Match';
+
+            } catch (err) {
+                console.error("Crash JS:", err);
+                alert("❌ Erreur de formulaire. Vérifiez que la date et l'heure sont bien sélectionnées.");
+                document.getElementById('btn-creer').innerHTML = 'Publier le Match';
+            }
         }
 
         function parseNotes(notesStr) {
@@ -603,12 +904,12 @@
             return { subGame: null, ageBracket: '18-35', priceMad: 50, validation: true, hostSkill: 'Mssalk', friendsOnly: false, hostCinVerified: true };
         }
 
-        // --- 9. FILTRES & MATCHMAKING ---
+        // --- 11. FILTRES & MATCHMAKING (Minimaliste) ---
         function setSportFilter(sport) {
             activeSportFilter = sport;
             document.querySelectorAll('.sport-filter-btn').forEach(btn => {
                 const isSelected = btn.getAttribute('data-sport') === sport;
-                btn.className = isSelected ? 'sport-filter-btn px-4 py-2.5 bg-zinc-900 text-white font-extrabold rounded-xl whitespace-nowrap shadow-sm uppercase tracking-wider text-xs flex items-center gap-2 transition-all' : 'sport-filter-btn px-4 py-2.5 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-xs flex items-center gap-2 transition-all hover:bg-zinc-200/70';
+                btn.className = isSelected ? 'sport-filter-btn px-4 py-2 bg-zinc-900 text-white font-extrabold rounded-xl whitespace-nowrap shadow-sm uppercase tracking-wider text-[11px] flex items-center gap-2 transition-all' : 'sport-filter-btn px-4 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-2 transition-all hover:bg-zinc-200';
             });
             afficherFeedFiltre();
         }
@@ -616,23 +917,25 @@
         function toggleTodayFilter() {
             filterTodayOnly = !filterTodayOnly;
             const btn = document.getElementById('btn-filter-today');
-            btn.className = filterTodayOnly ? 'py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#e05a47] text-white shadow-sm transition-all' : 'py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200 transition-all hover:bg-zinc-200/60';
+            btn.className = filterTodayOnly ? 'py-1.5 px-3 rounded-lg text-[9px] font-bold uppercase bg-zinc-800 text-white shadow-sm transition-all' : 'py-1.5 px-3 rounded-lg text-[9px] font-bold uppercase bg-zinc-100 text-zinc-600 border border-zinc-200 hover:bg-zinc-200 transition';
             afficherFeedFiltre();
         }
 
-        function toggleAroundMeFilter() {
-            filterAroundMe = !filterAroundMe;
-            const btn = document.getElementById('btn-filter-around');
-            btn.className = filterAroundMe ? 'py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider bg-[#2a9d8f] text-white shadow-sm transition-all' : 'py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200 transition-all hover:bg-zinc-200/60';
-            afficherFeedFiltre();
-        }
+        async function rafraichirTout() { await chargerParties(); if(!document.getElementById('modal-mes-matchs').classList.contains('hidden')) chargerMesMatchs(); }
 
-        async function rafraichirTout() { await chargerParties(); }
-
-        async function chargerParties() {
+       async function chargerParties() {
             const now = new Date().toISOString();
             const { data, error } = await client.from('games').select('*').gte('game_time', now);
-            if (!error && data) { allGamesCache = data; afficherRadarUrgences(); afficherFeedFiltre(); }
+            
+            if (error) {
+                console.error("Erreur DB:", error.message);
+                allGamesCache = [];
+            } else {
+                allGamesCache = data || []; 
+            }
+            
+            afficherRadarUrgences(); 
+            afficherFeedFiltre();
         }
 
         function trierParPriorite(gamesList) {
@@ -655,11 +958,20 @@
             radarBox.innerHTML = '';
             urgentGames.forEach(g => {
                 const cfg = SPORT_CONFIG[g.activity_type] || SPORT_CONFIG['Football']; const meta = parseNotes(g.notes);
-                const distKm = calculerDistanceClub(g.location_name); const dispoToday = isToday(g.game_time);
+                const d = new Date(g.game_time); const heureStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
                 radarBox.insertAdjacentHTML('beforeend', `
-                    <div class="${cfg.cardBg} p-3.5 rounded-2xl border ${cfg.cardBorder} mb-3 transition">
-                        <div class="flex justify-between items-center mb-1.5"><span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-white/90 ${cfg.text}">${dispoToday ? 'Aujourd\'hui' : 'Imminent'} • ${distKm} km</span><span class="text-[10px] font-black text-zinc-900 bg-white px-2 py-0.5 rounded border border-zinc-200">-${g.players_needed} place${g.players_needed > 1 ? 's' : ''}</span></div>
-                        <div class="flex justify-between items-end mt-2"><div class="pr-2"><h4 class="font-black text-xs text-black uppercase leading-snug">${meta.subGame || g.activity_type}</h4><p class="text-[11px] font-semibold text-zinc-600 truncate max-w-[140px]">${g.location_name} • ${new Date(g.game_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p></div><button onclick="rejoindrePartie('${g.id}', this, ${meta.priceMad})" class="bg-zinc-900 hover:bg-black text-white text-[10px] font-extrabold uppercase px-3 py-1.5 rounded-xl active:scale-95 shrink-0">Rejoindre</button></div>
+                    <div onclick="ouvrirDetailsMatch('${g.id}')" class="bg-white p-3.5 rounded-2xl border border-zinc-200 mb-3 cursor-pointer hover:border-black transition shadow-sm flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 ${cfg.iconBg} rounded-xl flex items-center justify-center text-base border ${cfg.cardBorder} ${cfg.text} shrink-0"><i class="fas ${cfg.icon}"></i></div>
+                            <div>
+                                <h4 class="font-black text-xs text-black uppercase leading-snug">${meta.subGame || g.activity_type}</h4>
+                                <p class="text-[10px] font-semibold text-zinc-500 truncate max-w-[130px]">${g.location_name}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-[10px] font-black text-zinc-800 uppercase">${heureStr}</span>
+                            <span class="block text-[9px] font-extrabold text-zinc-400 uppercase mt-0.5">-${g.players_needed} place${g.players_needed > 1 ? 's' : ''}</span>
+                        </div>
                     </div>`);
             });
         }
@@ -673,105 +985,242 @@
 
             if (list.length === 0) { feed.innerHTML = '<div class="col-span-full border border-dashed border-zinc-300 rounded-2xl p-10 text-center text-zinc-400 font-bold text-xs">Aucun match trouvé.</div>'; return; }
             feed.innerHTML = '';
-            list.forEach(partie => feed.insertAdjacentHTML('beforeend', genererCarteHTML(partie, false)));
+            list.forEach(partie => feed.insertAdjacentHTML('beforeend', genererCarteHTMLMinimaliste(partie)));
         }
 
-        async function chargerDashboardModal() {
-            const container = document.getElementById('vestiaire-modal-content');
-            if (!currentUser) return container.innerHTML = '<p class="text-xs text-center text-zinc-400">Connectez-vous pour voir vos matchs.</p>';
-            const now = new Date().toISOString();
-            const { data, error } = await client.from('games').select(`*, game_participants (id, status, profiles ( username, reliability_score ))`).eq('host_id', currentUser.id).gte('game_time', now).order('game_time', { ascending: true });
-            if (error || !data || data.length === 0) { container.innerHTML = '<div class="border border-dashed border-zinc-300 rounded-2xl p-8 text-center text-zinc-400 font-bold text-xs">Aucun match organisé par vous.</div>'; return; }
-            container.innerHTML = ''; 
-            data.forEach(partie => container.insertAdjacentHTML('beforeend', genererCarteHTML(partie, true)));
-        }
-
-        async function rejoindrePartie(gameId, btnElement, priceMad = 0) {
-            if (!currentUser) return;
-            if (priceMad > 0) {
-                if (!confirm(`💳 Confirmation de réservation :\nPart terrain : ${priceMad} MAD\nFrais LA3BIN : 5 MAD\nTotal : ${priceMad + 5} MAD 💰\n\nConfirmer ?`)) return;
-            }
-            btnElement.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>'; btnElement.disabled = true;
-            const { error } = await client.from('game_participants').insert([{ game_id: gameId, player_id: currentUser.id }]);
-            if (error) {
-                if (error.code === '23505') { btnElement.innerHTML = 'Inscrit • Chat'; btnElement.className = 'px-3.5 py-2 bg-[#2a9d8f] text-white font-extrabold rounded-xl uppercase text-[10px] tracking-wider shrink-0'; btnElement.disabled = false; btnElement.onclick = () => ouvrirChatRDV(gameId, 'Salon du Match'); }
-                else { alert("❌ " + error.message); btnElement.innerHTML = 'Rejoindre'; btnElement.disabled = false; }
-            } else {
-                btnElement.innerHTML = 'Réservé • Chat'; btnElement.className = 'w-full bg-[#2a9d8f] text-white font-extrabold py-3 rounded-xl uppercase text-[11px] tracking-wider shadow-sm'; btnElement.disabled = false; btnElement.onclick = () => ouvrirChatRDV(gameId, 'Salon du Match');
-            }
-        }
-
-        async function gererCandidature(participantId, action, btnElement) {
-            btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            await client.from('game_participants').update({ status: action === 'accepter' ? 'accepted' : 'rejected' }).eq('id', participantId);
-            chargerDashboardModal(); 
-        }
-
-        function genererCarteHTML(partie, isDashboard) {
-            const cfg = SPORT_CONFIG[partie.activity_type] || SPORT_CONFIG['Football']; const meta = parseNotes(partie.notes);
-            const distKm = calculerDistanceClub(partie.location_name); const d = new Date(partie.game_time);
-            const dateStr = (isToday(partie.game_time) ? "Aujourd'hui" : d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-            const priceLabel = meta.priceMad > 0 ? `${meta.priceMad} DH/p 💰` : 'Gratuit 💰';
-
-            let basCarte = `<div class="flex gap-2 mt-auto"><button onclick="rejoindrePartie('${partie.id}', this, ${meta.priceMad})" class="flex-1 bg-zinc-900 hover:bg-black text-white font-extrabold py-3 rounded-xl active:scale-95 transition-all uppercase text-[11px] tracking-wider shadow-sm">Rejoindre ${meta.priceMad > 0 ? '• ' + meta.priceMad + ' DH 💰' : ''}</button><button onclick="ouvrirChatRDV('${partie.id}', '${meta.subGame || partie.activity_type}')" class="w-11 bg-white/90 hover:bg-white text-zinc-800 border border-zinc-200/80 rounded-xl flex items-center justify-center active:scale-95 transition" title="Salon Chat"><i class="fas fa-comments text-sm"></i></button></div>`;
+        // CARTE ULTRA MINIMALISTE (Sans détails jusqu'au clic)
+     function genererCarteHTMLMinimaliste(partie) {
+            const cfg = SPORT_CONFIG[partie.activity_type] || SPORT_CONFIG['Football'];
             
-            if(isDashboard) {
-                let cHTML = '';
-                (partie.game_participants || []).forEach(p => {
-                    const pseudo = p.profiles?.username || "Joueur Vérifié";
-                    if(p.status === 'joined' || p.status === 'pending') {
-                        cHTML += `<div class="flex items-center justify-between bg-white p-2.5 rounded-xl border border-zinc-200 mt-2"><div><p class="font-bold text-xs truncate">${pseudo}</p><span class="text-[9px] font-bold text-zinc-400 uppercase">Fiabilité 100%</span></div><div class="flex gap-1.5"><button onclick="gererCandidature('${p.id}', 'refuser', this)" class="w-7 h-7 bg-zinc-100 text-red-500 rounded-lg active:scale-90 text-xs"><i class="fas fa-times"></i></button><button onclick="gererCandidature('${p.id}', 'accepter', this)" class="w-7 h-7 bg-zinc-900 text-white rounded-lg active:scale-90 text-xs"><i class="fas fa-check"></i></button></div></div>`;
-                    } else if(p.status === 'accepted') {
-                        cHTML += `<div class="flex items-center justify-between bg-white p-2.5 rounded-xl border border-zinc-200 mt-2"><div><p class="font-bold text-xs">${pseudo}</p><span class="text-[9px] font-extrabold text-[#2a9d8f] uppercase">Confirmé</span></div><button onclick="voterMVPAnonyme('${partie.id}', '${pseudo}', this)" class="bg-amber-100 text-amber-800 text-[9px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-lg active:scale-95"><i class="fas fa-trophy mr-1"></i> Voter MVP</button></div>`;
-                    }
-                });
-                basCarte = `<div class="flex justify-between items-center border-t border-black/10 pt-3 mt-3 mb-2"><h4 class="text-[10px] font-extrabold text-zinc-600 uppercase tracking-wider">Joueurs & MVP</h4><button onclick="ouvrirChatRDV('${partie.id}', '${meta.subGame || partie.activity_type}')" class="text-[10px] font-extrabold uppercase bg-zinc-900 text-white px-3 py-1.5 rounded-lg active:scale-95"><i class="fas fa-comments mr-1"></i> Chat RDV</button></div>${cHTML || '<p class="text-[11px] font-semibold text-zinc-500 text-center py-2">En attente de joueurs</p>'}`;
-            }
+            let meta = { subGame: null, ageBracket: '18-35', priceMad: 50, hostSkill: 'Mssalk' };
+            if (typeof partie.notes === 'object' && partie.notes !== null) meta = partie.notes;
+            else if (typeof partie.notes === 'string' && partie.notes.startsWith('{')) meta = JSON.parse(partie.notes);
+
+            const d = new Date(partie.game_time);
+            const timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            
+            // Simulation de la Jauge de Tension pour le rendu visuel
+            const totalPlaces = partie.players_needed || 10;
+            const placesPrises = Math.floor(Math.random() * (totalPlaces - 1)) + 1; // Fausse donnée pour le design
+            const percentage = (placesPrises / totalPlaces) * 100;
+            const gaugeColor = percentage > 80 ? 'bg-red-500' : (percentage > 50 ? 'bg-amber-400' : 'bg-emerald-500');
 
             return `
-                <div class="${cfg.cardBg} rounded-2xl p-4 border ${cfg.cardBorder} transition-all relative w-full flex flex-col justify-between shadow-sm">
-                    <div>
-                        <div class="flex justify-between items-start gap-2 mb-3">
+                <div data-aos="fade-up" class="group bg-white rounded-3xl p-5 mb-5 border border-zinc-200 shadow-sm relative overflow-hidden active:scale-[0.98] transition duration-500 hover:shadow-xl cursor-pointer" onclick="ouvrirDetailsMatch('${partie.id}')">
+                    
+                    <!-- Image Parallax (Glisse légèrement au survol/scroll) -->
+                    <div class="absolute inset-0 z-0 opacity-[0.03] bg-[url('https://images.unsplash.com/photo-1551958219-acbc608c6aff?q=80&w=600')] bg-cover bg-center transition-transform duration-1000 group-hover:scale-110"></div>
+                    
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-start mb-6">
                             <div class="flex items-center gap-3">
-                                <div class="w-11 h-11 ${cfg.iconBg} rounded-xl flex items-center justify-center text-lg border ${cfg.cardBorder} ${cfg.text} shrink-0 shadow-sm"><i class="fas ${cfg.icon}"></i></div>
+                                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl border ${cfg.cardBorder} ${cfg.iconBg}">
+                                    <i class="fas ${cfg.icon} ${cfg.text}"></i>
+                                </div>
                                 <div>
-                                    <div class="flex items-center gap-1.5"><h3 class="font-black text-sm text-zinc-900 uppercase tracking-tight leading-tight">${meta.subGame || partie.activity_type}</h3>${meta.friendsOnly ? '<span class="bg-zinc-900 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded">🔒 Amis</span>' : ''}${meta.hostCinVerified ? '<i class="fas fa-check-circle text-[#2a9d8f] text-[11px]" title="CIN Vérifiée"></i>' : ''}</div>
-                                    <p class="text-zinc-600 text-[11px] font-semibold mt-0.5"><i class="far fa-clock mr-1"></i> ${dateStr} • <span class="font-extrabold">${distKm} km</span></p>
+                                    <h3 class="text-lg font-black uppercase tracking-tight text-zinc-900">${meta.subGame || partie.activity_type}</h3>
+                                    <p class="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest"><i class="fas fa-location-dot"></i> ${partie.location_name}</p>
                                 </div>
                             </div>
-                            <span class="${cfg.badgeBg} text-white text-[9px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-full shrink-0 shadow-sm">Manque ${partie.players_needed}</span>
+                            
+                            <!-- Badges (Hiérarchie) -->
+                            <div class="flex flex-col gap-1.5 items-end">
+                                <span class="px-2 py-1 bg-zinc-900 text-white text-[9px] font-black uppercase tracking-widest rounded shadow-sm">${meta.priceMad > 0 ? meta.priceMad + ' DH' : 'Gratuit'}</span>
+                                <span class="px-2 py-1 bg-zinc-100 border border-zinc-200 text-zinc-500 text-[8px] font-black uppercase tracking-widest rounded">${meta.hostSkill}</span>
+                            </div>
                         </div>
-                        <div class="flex flex-wrap gap-1.5 mb-4">
-                            <span class="bg-white/90 border border-black/5 text-zinc-800 text-[10px] font-bold px-2.5 py-1 rounded-lg"><i class="fas fa-location-dot mr-1 ${cfg.text}"></i>${partie.location_name}</span>
-                            ${meta.hostSkill && meta.hostSkill !== 'Aucun' ? `<span class="bg-white/90 border border-black/5 text-zinc-700 text-[10px] font-bold px-2.5 py-1 rounded-lg"><i class="fas fa-signal mr-1"></i>${meta.hostSkill}</span>` : ''}
-                            <span class="bg-white/90 border border-black/5 text-zinc-700 text-[10px] font-bold px-2.5 py-1 rounded-lg"><i class="fas fa-users mr-1"></i>${meta.ageBracket} ans</span>
-                            <span class="bg-white/90 border border-black/5 text-zinc-800 text-[10px] font-extrabold px-2.5 py-1 rounded-lg">${priceLabel}</span>
+
+                        <!-- Jauge de Tension (Plei) -->
+                        <div class="mt-2">
+                            <div class="flex justify-between items-end mb-2">
+                                <span class="text-[10px] font-black text-zinc-900 bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200"><i class="fas fa-clock text-zinc-400 mr-1"></i> ${timeStr}</span>
+                                <span class="text-[9px] font-black uppercase tracking-widest text-zinc-400">${placesPrises}/${totalPlaces} Joueurs</span>
+                            </div>
+                            <div class="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
+                                <div class="h-full ${gaugeColor} rounded-full transition-all duration-1000" style="width: ${percentage}%"></div>
+                            </div>
                         </div>
                     </div>
-                    ${basCarte}
-                </div>`;
+                </div>
+            `;
+        }
+
+        // --- LOGIQUE RÉSERVATION GROUPE ---
+        let currentGroupGame = null;
+        let currentGroupRoster = [];
+
+        function ouvrirModalGroupe(gameId, priceMad, placesDispo) {
+            if (!currentUser) return alert("❌ Connectez-vous d'abord.");
+            if (placesDispo < 2) return alert("❌ Il ne reste qu'une seule place !");
+            
+            currentGroupGame = { id: gameId, priceMad, placesDispo };
+            const prof = getLocalProfile();
+            currentGroupRoster = [{ type: 'host', name: prof.pseudo, id: currentUser.id, avatar: prof.avatarUrl }];
+            
+            document.getElementById('groupe-max').innerText = placesDispo;
+            document.getElementById('modal-match-details').classList.add('hidden'); // Cache la 1ère fenetre
+            
+            renderRosterGroupe();
+            const modal = document.getElementById('modal-groupe');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('translate-y-full'), 10);
+        }
+
+        function fermerModalGroupe() {
+            const modal = document.getElementById('modal-groupe');
+            modal.classList.add('translate-y-full');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function renderRosterGroupe() {
+            const container = document.getElementById('groupe-roster-list');
+            container.innerHTML = '';
+            
+            currentGroupRoster.forEach((player, index) => {
+                const isHost = index === 0;
+                const icon = player.type === 'guest' ? '<i class="fas fa-user-secret text-zinc-400 text-lg"></i>' : `<img src="${player.avatar}" class="w-8 h-8 rounded-full border border-zinc-200">`;
+                const tag = player.type === 'guest' ? 'Invité' : (isHost ? 'Vous' : 'Ami(e)');
+                
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="flex justify-between items-center bg-white p-2.5 rounded-xl border border-zinc-200 shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-zinc-100 rounded-full flex items-center justify-center shrink-0">${icon}</div>
+                            <div>
+                                <p class="text-xs font-black text-zinc-900">${player.name}</p>
+                                <p class="text-[9px] font-bold text-zinc-400 uppercase">${tag}</p>
+                            </div>
+                        </div>
+                        ${!isHost ? `<button onclick="retirerJoueurGroupe(${index})" class="w-7 h-7 bg-red-50 text-red-500 rounded-lg flex items-center justify-center hover:bg-red-100"><i class="fas fa-trash-alt text-[10px]"></i></button>` : ''}
+                    </div>
+                `);
+            });
+
+            document.getElementById('groupe-count').innerText = currentGroupRoster.length;
+            const total = currentGroupRoster.length * (currentGroupGame.priceMad > 0 ? (currentGroupGame.priceMad + 5) : 0);
+            document.getElementById('groupe-total-price').innerText = total > 0 ? `${total} DH` : 'Gratuit';
+        }
+
+        async function ajouterJoueurLa3bin() {
+            if (currentGroupRoster.length >= currentGroupGame.placesDispo) return alert("❌ Plus de places !");
+            
+            const input = document.getElementById('groupe-input-name');
+            const username = input.value.trim();
+            if(!username) return alert("Entrez un pseudo.");
+            
+            // Cherche dans Supabase
+            const { data, error } = await client.from('profiles').select('id, username, avatar_url').ilike('username', username).single();
+            
+            if (error || !data) return alert("❌ Joueur introuvable.");
+            if (currentGroupRoster.find(p => p.id === data.id)) return alert("❌ Joueur déjà ajouté.");
+
+            currentGroupRoster.push({ type: 'friend', name: data.username, id: data.id, avatar: data.avatar_url });
+            input.value = '';
+            renderRosterGroupe();
+        }
+
+        function ajouterInvite() {
+            if (currentGroupRoster.length >= currentGroupGame.placesDispo) return alert("❌ Plus de places !");
+            
+            const input = document.getElementById('groupe-input-name');
+            const guestName = input.value.trim();
+            if(!guestName) return alert("Entrez le prénom de votre invité.");
+            
+            currentGroupRoster.push({ type: 'guest', name: guestName });
+            input.value = '';
+            renderRosterGroupe();
+        }
+
+        function retirerJoueurGroupe(index) {
+            currentGroupRoster.splice(index, 1);
+            renderRosterGroupe();
+        }
+
+        async function validerReservationGroupe() {
+            const btn = document.getElementById('btn-valider-groupe');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement...';
+            btn.disabled = true;
+
+            const inserts = currentGroupRoster.map(p => {
+                if (p.type === 'guest') {
+                    return { game_id: currentGroupGame.id, guest_name: p.name };
+                } else {
+                    return { game_id: currentGroupGame.id, player_id: p.id };
+                }
+            });
+
+            const { error } = await client.from('game_participants').insert(inserts);
+
+            if (error) {
+                alert("❌ Erreur serveur: " + error.message);
+                btn.innerHTML = "Confirmer l'équipe";
+                btn.disabled = false;
+            } else {
+                btn.innerHTML = "Équipe validée ! <i class='fas fa-check ml-1'></i>";
+                btn.className = 'w-full bg-zinc-900 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl shadow-md';
+                setTimeout(() => {
+                    fermerModalGroupe();
+                    rafraichirTout();
+                }, 1500);
+            }
+        }
+        // --- 12. GESTION "MES MATCHS" ---
+        async function chargerMesMatchs() {
+            const container = document.getElementById('mes-matchs-list-ui');
+            let allMyGames = [];
+
+            if (!currentUser) {
+                container.innerHTML = '<div class="border border-dashed border-zinc-300 rounded-2xl p-8 text-center text-zinc-400 font-bold text-xs">Veuillez vous connecter pour voir vos matchs.</div>'; 
+                return;
+            }
+
+            const now = new Date().toISOString();
+            const { data: myHostedGames } = await client.from('games').select(`*, game_participants (id, status, profiles ( username, avatar_url ))`).eq('host_id', currentUser.id).gte('game_time', now);
+            const { data: myParticipations } = await client.from('game_participants').select(`games (*)`).eq('player_id', currentUser.id);
+            
+            allMyGames = myHostedGames || [];
+            if (myParticipations) {
+                myParticipations.forEach(p => {
+                    if (p.games && new Date(p.games.game_time) >= new Date() && !allMyGames.find(g => g.id === p.games.id)) {
+                        allMyGames.push(p.games);
+                    }
+                });
+            }
+            
+            allMyGames = trierParPriorite(allMyGames);;
+
+            if (allMyGames.length === 0) { container.innerHTML = '<div class="border border-dashed border-zinc-300 rounded-2xl p-8 text-center text-zinc-400 font-bold text-xs">Aucun match à venir.</div>'; return; }
+            
+            container.innerHTML = ''; 
+            allMyGames.forEach(partie => {
+                const cfg = SPORT_CONFIG[partie.activity_type] || SPORT_CONFIG['Football'];
+                const meta = parseNotes(partie.notes);
+                const d = new Date(partie.game_time);
+                const dateStr = (isToday(partie.game_time) ? "Aujourd'hui" : d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                
+                const isHost = currentUser && partie.host_id === currentUser.id;
+
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="bg-white rounded-2xl p-4 border border-zinc-200 shadow-sm relative w-full flex flex-col justify-between mb-4">
+                        <div class="flex justify-between items-start gap-2 mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 ${cfg.iconBg} rounded-xl flex items-center justify-center text-base border ${cfg.cardBorder} ${cfg.text} shrink-0"><i class="fas ${cfg.icon}"></i></div>
+                                <div>
+                                    <h3 class="font-black text-sm text-zinc-900 uppercase tracking-tight">${meta.subGame || partie.activity_type}</h3>
+                                    <p class="text-zinc-500 text-[10px] font-semibold mt-0.5"><i class="far fa-clock mr-1"></i> ${dateStr} • ${partie.location_name}</p>
+                                </div>
+                            </div>
+                            ${isHost ? '<span class="text-[8px] font-black uppercase bg-zinc-100 text-zinc-800 px-2 py-0.5 rounded border border-zinc-200">Orga</span>' : ''}
+                        </div>
+                        <button onclick="ouvrirVestiaireEquipe('${partie.id}', '${meta.subGame || partie.activity_type}')" class="w-full bg-[#fbbf24] hover:bg-[#f59e0b] text-zinc-900 font-extrabold py-3 rounded-xl active:scale-95 transition-all uppercase text-[10px] tracking-widest shadow-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-users"></i> Vestiaire Tactique
+                        </button>
+                    </div>
+                `);
+            });
         }
     </script>
 
-    <!-- AUTH SCREEN -->
-    <div id="screen-auth" class="hidden fixed inset-0 bg-zinc-100 z-50 flex flex-col justify-center px-6 transition-opacity duration-300">
-        <div class="max-w-md mx-auto w-full bg-white p-8 rounded-3xl border border-zinc-200 shadow-xl">
-            <div class="text-center mb-8">
-                <h1 class="text-5xl font-black text-black tracking-tighter mb-2 uppercase logo-container">LA3BIN<span class="logo-punct-wrapper"><span class="logo-punct" style="color: #e05a47;">?</span></span></h1>
-                <p class="text-zinc-500 font-bold text-xs uppercase tracking-widest">Matchmaking Sport & Jeux</p>
-            </div>
-            <div class="space-y-4">
-                <div><label class="block text-[10px] font-black text-zinc-400 mb-1.5 uppercase tracking-widest">Email</label><input type="email" id="auth-email" class="input-premium" placeholder="joueur@la3bin.ma"></div>
-                <div><label class="block text-[10px] font-black text-zinc-400 mb-1.5 uppercase tracking-widest">Mot de passe</label><input type="password" id="auth-password" class="input-premium" placeholder="••••••••"></div>
-                <div class="pt-3 space-y-2.5">
-                    <button id="btn-login" onclick="seConnecter()" class="w-full bg-zinc-900 text-white font-black text-xs py-4 rounded-xl active:scale-95 uppercase tracking-widest">Se connecter</button>
-                    <button id="btn-register" onclick="creerCompte()" class="w-full bg-white border-2 border-zinc-200 text-black font-black text-xs py-4 rounded-xl active:scale-95 uppercase tracking-widest">Créer un compte</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- EN-TÊTE GLOBAL -->
+    <!-- EN-TÊTE GLOBAL CORRECTEMENT STRUCTURÉ -->
     <header class="bg-white/95 backdrop-blur-md border-b border-zinc-200 px-4 lg:px-8 py-3.5 sticky top-0 z-40">
         <div class="max-w-[1440px] mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -779,36 +1228,45 @@
                 <span class="hidden sm:inline-block bg-zinc-100 text-zinc-500 text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-md tracking-wider">Casablanca Live</span>
             </div>
             <div class="flex items-center gap-2.5">
-                <button id="btn-sim-mobile" onclick="toggleMobileSimulator()" class="hidden lg:flex items-center bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-extrabold uppercase tracking-wider px-3.5 py-2 rounded-xl transition"><i class="fas fa-mobile-screen-button mr-1.5"></i> Vue Mobile</button>
-                <button onclick="toggleModal()" class="hidden lg:flex items-center gap-2 bg-zinc-900 text-white text-xs font-extrabold uppercase tracking-wider px-4 py-2 rounded-xl hover:bg-black active:scale-95 transition"><i class="fas fa-plus text-[#e05a47]"></i> Nouveau Match</button>
-                <button onclick="toggleVestiaireModal()" class="relative hidden lg:flex items-center gap-2.5 bg-gradient-to-br from-amber-400 to-amber-500 text-amber-950 px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all border border-amber-300"><i class="fas fa-trophy text-lg"></i><span class="text-[11px] font-black uppercase tracking-widest">Vestiaire</span><span class="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500 border-2 border-white"></span></span></button>
-                <button onclick="toggleAccountModal()" class="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200/80 px-3 py-1.5 rounded-full border border-zinc-200 transition active:scale-95"><img id="header-avatar" src="https://upload.wikimedia.org/wikipedia/commons/d/d7/Cristiano_Ronaldo_playing_for_Al_Nassr_FC_against_Persepolis%2C_September_2023_%28cropped%29.jpg" class="w-8 h-8 rounded-full object-cover object-top border border-zinc-300" alt="Profil"><span id="header-username" class="hidden sm:inline text-xs font-extrabold text-zinc-800">Mon Compte</span><i class="fas fa-check-circle text-[#2a9d8f] text-xs"></i></button>
-                <button onclick="seDeconnecter()" class="w-9 h-9 bg-zinc-100 hover:bg-zinc-200 rounded-full flex items-center justify-center text-zinc-500 hover:text-black transition" title="Déconnexion"><i class="fas fa-sign-out-alt text-sm"></i></button>
+                <button id="btn-sim-mobile" onclick="toggleMobileSimulator()" class="hidden lg:flex items-center bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs font-extrabold uppercase tracking-wider px-3.5 py-2 rounded-xl transition hover:bg-zinc-200"><i class="fas fa-mobile-screen-button mr-1.5"></i> Vue Mobile</button>
+                <button onclick="toggleModal()" class="hidden lg:flex items-center gap-2 bg-zinc-900 text-white text-xs font-extrabold uppercase tracking-wider px-4 py-2 rounded-xl hover:bg-black active:scale-95 transition shadow-sm"><i class="fas fa-plus text-[#e05a47]"></i> Nouveau Match</button>
+                
+                <!-- BOUTON MES MATCHS (JAUNE) -->
+                <button onclick="switchMobileTab('manage')" class="relative hidden lg:flex items-center gap-2 bg-[#fbbf24] hover:bg-[#f59e0b] text-zinc-900 text-xs font-extrabold uppercase tracking-wider px-4 py-2 rounded-xl active:scale-95 transition shadow-sm">
+                    <i class="fas fa-calendar-check text-zinc-900"></i> Mes Matchs
+                    <span class="absolute -top-1 -right-1 flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500 border border-white"></span>
+                    </span>
+                </button>
+                
+                <button onclick="toggleAccountModal()" class="flex items-center gap-2 bg-white hover:bg-zinc-50 px-3 py-1.5 rounded-full border border-zinc-200 transition active:scale-95 shadow-sm">
+                    <img id="header-avatar" src="" class="w-8 h-8 rounded-full object-cover object-top border border-zinc-200 bg-zinc-100" alt="Profil">
+                    <span id="header-username" class="hidden sm:inline text-xs font-extrabold text-zinc-800">Mon Compte</span>
+                </button>
             </div>
         </div>
     </header>
 
-    <!-- GRILLE PRINCIPALE -->
+    <!-- GRILLE PRINCIPALE MATCHMAKING -->
     <div id="main-grid" class="max-w-[1440px] mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start transition-all">
-
+        
         <!-- COLONNE GAUCHE (3 cols) -->
         <div id="panel-left-col" class="hidden lg:block lg:col-span-3 space-y-5">
-            <!-- BULLE SCANNER -->
-            <div class="bg-gradient-to-br from-zinc-900 via-zinc-900 to-black text-white p-5 rounded-[1.75rem] shadow-lg border border-zinc-800 relative overflow-hidden">
+            <div class="bg-[#18181b] text-white p-5 rounded-[1.75rem] shadow-lg border border-zinc-800 relative overflow-hidden">
                 <div class="flex justify-between items-center mb-3">
                     <span class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#2a9d8f]"><span class="w-2 h-2 rounded-full bg-[#2a9d8f] animate-ping"></span> Radar GPS</span>
                     <span id="gps-status-badge" class="text-[9px] font-extrabold text-zinc-300 bg-white/10 px-2.5 py-1 rounded-full">Maarif (Défaut)</span>
                 </div>
-                <h3 class="text-lg font-black uppercase tracking-tight">Scanner à proximité</h3>
+                <h3 class="text-lg font-black uppercase tracking-tight text-white mt-1">Scanner à proximité</h3>
                 <p class="text-[11px] text-zinc-400 font-medium mt-1 mb-4 leading-relaxed">Détecte les terrains dans un rayon de 4 km.</p>
                 <button onclick="activerGpsTempsReel(true);" class="w-full bg-[#2a9d8f] hover:bg-[#23877b] text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl active:scale-95 transition shadow-md flex items-center justify-center gap-2"><i class="fas fa-location-crosshairs text-sm"></i> Scanner autour de moi</button>
             </div>
 
-            <!-- BULLE MES AMIS -->
             <section class="bento-panel">
                 <div class="mb-3 pb-2 border-b border-zinc-100 flex justify-between items-center">
                     <div>
-                        <span class="text-[10px] font-extrabold uppercase tracking-widest text-orange-500">Réseau Social</span>
+                        <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#e05a47]">Réseau Social</span>
                         <h2 class="text-base font-black tracking-tight text-black uppercase mt-0.5">Mes Amis</h2>
                     </div>
                     <span class="text-xs font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">🔥 <span id="prof-streak-flame">4</span> sem.</span>
@@ -816,167 +1274,267 @@
                 <div id="friends-activity-list" class="space-y-2.5"></div>
             </section>
 
-            <!-- BULLE DISPO AUJOURD'HUI -->
             <section class="bento-panel">
                 <div class="mb-3 pb-2 border-b border-zinc-100">
-                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#e05a47]">Radar Live</span>
+                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Radar Live</span>
                     <h2 class="text-base font-black tracking-tight text-black uppercase mt-0.5">Dispo Aujourd'hui</h2>
                 </div>
                 <div id="radar-today-list"></div>
             </section>
         </div>
 
-        <!-- COLONNE CENTRALE VEDETTE (9 cols) : MATCHMAKING -->
+        <!-- COLONNE CENTRALE VEDETTE (9 cols) -->
         <section id="panel-feed" class="block lg:col-span-9 bento-panel !p-6 shadow-md border-zinc-200/90">
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 mb-5 pb-4 border-b border-zinc-100">
-                <div><h2 class="text-2xl lg:text-3xl font-black tracking-tighter text-black uppercase">Flux des Matchs</h2></div>
+                <!-- LE TITRE A ÉTÉ CHANGÉ POUR L'ARÈNE -->
+                <div><h2 class="text-2xl lg:text-3xl font-black tracking-tighter text-black uppercase">L'Arène</h2></div>
                 <div class="flex gap-2">
-                    <button id="btn-filter-today" onclick="toggleTodayFilter()" class="py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200 transition-all hover:bg-zinc-200/60"><i class="fas fa-bolt mr-1 text-[#e05a47]"></i> Aujourd'hui</button>
-                    <button id="btn-filter-around" onclick="activerGpsTempsReel(true)" class="py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200 transition-all hover:bg-zinc-200/60"><i class="fas fa-location-dot mr-1 text-[#2a9d8f]"></i> Proche (GPS)</button>
+                    <button id="btn-filter-today" onclick="toggleTodayFilter()" class="py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200 transition-all hover:bg-zinc-200 shadow-sm"><i class="fas fa-bolt mr-1 text-[#e05a47]"></i> Aujourd'hui</button>
+                    <button id="btn-filter-around" onclick="activerGpsTempsReel(true)" class="py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200 transition-all hover:bg-zinc-200 shadow-sm"><i class="fas fa-location-dot mr-1 text-[#2a9d8f]"></i> Proche (GPS)</button>
                 </div>
             </div>
 
-            <!-- Filtres par sport -->
+            <!-- BOUTONS FILTRES PLUS CONTRASTÉS (bg-zinc-100) -->
             <div class="flex gap-2 overflow-x-auto pb-4 mb-2 scrollbar-hide">
-                <button data-sport="ALL" onclick="setSportFilter('ALL')" class="sport-filter-btn px-4 py-2.5 bg-zinc-900 text-white font-extrabold rounded-xl whitespace-nowrap shadow-sm uppercase tracking-wider text-xs flex items-center gap-2">Tout voir</button>
-                <button data-sport="Football" onclick="setSportFilter('Football')" class="sport-filter-btn px-4 py-2.5 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-xs flex items-center gap-2"><i class="fas fa-futbol text-[#2a9d8f]"></i> Football</button>
-                <button data-sport="Padel" onclick="setSportFilter('Padel')" class="sport-filter-btn px-4 py-2.5 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-xs flex items-center gap-2"><i class="fas fa-table-tennis-paddle-ball text-[#d4a338]"></i> Padel</button>
-                <button data-sport="Basketball" onclick="setSportFilter('Basketball')" class="sport-filter-btn px-4 py-2.5 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-xs flex items-center gap-2"><i class="fas fa-basketball text-[#e06d47]"></i> Basketball</button>
-                <button data-sport="Jeux de société" onclick="setSportFilter('Jeux de société')" class="sport-filter-btn px-4 py-2.5 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-xs flex items-center gap-2"><i class="fas fa-chess-knight text-[#457b9d]"></i> Jeux & Cartes</button>
+                <button data-sport="ALL" onclick="setSportFilter('ALL')" class="sport-filter-btn px-4 py-2 bg-zinc-900 text-white font-extrabold rounded-xl whitespace-nowrap shadow-sm uppercase tracking-wider text-[11px] flex items-center gap-2 transition-all">Tout voir</button>
+                <button data-sport="Football" onclick="setSportFilter('Football')" class="sport-filter-btn px-4 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-2 hover:bg-zinc-200 transition"><i class="fas fa-futbol text-[#0f766e]"></i> Football</button>
+                <button data-sport="Padel" onclick="setSportFilter('Padel')" class="sport-filter-btn px-4 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-2 hover:bg-zinc-200 transition"><i class="fas fa-table-tennis-paddle-ball text-[#d97706]"></i> Padel</button>
+                <button data-sport="Musculation" onclick="setSportFilter('Musculation')" class="sport-filter-btn px-4 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-2 hover:bg-zinc-200 transition"><i class="fas fa-dumbbell text-[#475569]"></i> Musculation</button>
+                <button data-sport="Running" onclick="setSportFilter('Running')" class="sport-filter-btn px-4 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-2 hover:bg-zinc-200 transition"><i class="fas fa-running text-[#7e22ce]"></i> Running</button>
+                <button data-sport="Surf" onclick="setSportFilter('Surf')" class="sport-filter-btn px-4 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-2 hover:bg-zinc-200 transition"><i class="fas fa-water text-[#1d4ed8]"></i> Surf</button>
+                <button data-sport="Gaming" onclick="setSportFilter('Gaming')" class="sport-filter-btn px-4 py-2 bg-zinc-100 text-zinc-600 font-extrabold rounded-xl whitespace-nowrap border border-zinc-200/80 uppercase tracking-wider text-[11px] flex items-center gap-2 hover:bg-zinc-200 transition"><i class="fas fa-gamepad text-[#a21caf]"></i> Gaming</button>
             </div>
 
-            <div id="feed-parties" class="flex flex-col sm:grid sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            <div id="feed-parties" class="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </section>
-
     </div>
 
-    <!-- POP-UP MODAL "MON COMPTE" -->
-    <div id="modal-account" class="hidden fixed inset-0 bg-zinc-900/50 backdrop-blur-md z-[65] flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) toggleAccountModal()">
-        <div class="bg-white w-full max-w-md rounded-[2.25rem] shadow-2xl border border-zinc-200 overflow-hidden relative">
-            <div class="p-6 max-h-[88vh] overflow-y-auto modal-scroll space-y-4">
-                <button onclick="toggleAccountModal()" class="absolute top-5 right-5 text-zinc-400 hover:text-black text-lg w-9 h-9 bg-zinc-100 rounded-full flex items-center justify-center transition z-10"><i class="fas fa-times"></i></button>
-                
-                <div class="pb-3 border-b border-zinc-100 flex justify-between items-center pr-10">
-                    <div>
-                        <span class="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400">Identité & Niveaux</span>
-                        <h2 class="text-xl font-black tracking-tight text-black uppercase mt-0.5">Mon Compte</h2>
+  <!-- MODAL "DÉTAILS DU MATCH" -->
+    <div id="modal-match-details" class="hidden fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-transform transform translate-y-full duration-300">
+        <div class="bg-white w-full max-w-sm rounded-t-[2.25rem] sm:rounded-[2.25rem] shadow-2xl relative overflow-hidden pb-8 sm:pb-0">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <div id="detail-icon-box" class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border bg-zinc-50 shrink-0"><i id="detail-icon" class="fas fa-trophy text-zinc-400"></i></div>
+                    <button onclick="fermerDetailsMatch()" class="w-9 h-9 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 hover:bg-zinc-200 transition"><i class="fas fa-times"></i></button>
+                </div>
+                <h2 id="detail-title" class="text-2xl font-black uppercase tracking-tight text-black mb-1">Match</h2>
+                <p id="detail-location" class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2"><i class="fas fa-location-dot mr-1"></i> Club</p>
+                <p id="detail-time" class="text-sm font-black text-zinc-800 bg-zinc-100 inline-block px-3 py-1 rounded-lg mb-6 border border-zinc-200">Date et Heure</p>
+
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div class="bg-zinc-50 p-3 rounded-xl border border-zinc-200 text-center">
+                        <span class="block text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">Âge requis</span>
+                        <span id="detail-age" class="block text-xs font-extrabold text-black">18-35 ans</span>
                     </div>
-                    <div class="bg-amber-50 border border-amber-200/80 px-3 py-1 rounded-xl flex items-center gap-1.5">
-                        <i class="fas fa-trophy text-amber-600 text-xs"></i>
-                        <span id="prof-mvp-count" class="text-xs font-black text-amber-800">3</span>
-                        <span class="text-[9px] font-extrabold text-amber-700 uppercase">MVP</span>
+                    <div class="bg-zinc-50 p-3 rounded-xl border border-zinc-200 text-center">
+                        <span class="block text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">Niveau</span>
+                        <span id="detail-level" class="block text-xs font-extrabold text-black">Mssalk</span>
+                    </div>
+                    <div class="bg-zinc-50 p-3 rounded-xl border border-zinc-200 text-center">
+                        <span class="block text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">Tarif</span>
+                        <span id="detail-price" class="block text-xs font-extrabold text-black">50 DH 💰</span>
+                    </div>
+                    <div class="bg-zinc-50 p-3 rounded-xl border border-zinc-200 text-center">
+                        <span class="block text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">Places dispo</span>
+                        <span id="detail-places" class="block text-lg font-black text-zinc-800">-3</span>
                     </div>
                 </div>
 
-                <div class="bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200/80">
-                    <div class="flex items-center gap-3.5 mb-3">
-                        <img id="prof-avatar-preview" src="https://upload.wikimedia.org/wikipedia/commons/d/d7/Cristiano_Ronaldo_playing_for_Al_Nassr_FC_against_Persepolis%2C_September_2023_%28cropped%29.jpg" class="w-16 h-16 rounded-2xl object-cover object-top border border-zinc-300 bg-white shrink-0 shadow-sm" alt="Avatar">
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span id="prof-id-badge" class="text-[9px] font-black bg-zinc-900 text-white px-2 py-0.5 rounded uppercase tracking-wider">#LA3-001</span>
-                                <div id="cin-status-badge"></div>
-                            </div>
-                            <label class="mt-2 inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase bg-white border border-zinc-200 px-3 py-1.5 rounded-xl cursor-pointer hover:border-black transition shadow-sm">
-                                <i class="fas fa-camera text-zinc-500"></i> Importer une photo
-                                <input type="file" accept="image/*" class="hidden" onchange="uploaderPhotoLocale(event)">
-                            </label>
-                        </div>
-                    </div>
-                    <p class="text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-2">Ou choisir un avatar :</p>
-                    <div id="avatar-presets-grid" class="flex gap-2 justify-between"></div>
-                    <input type="hidden" id="prof-avatar">
+                <div class="space-y-2">
+                    <button id="detail-action-btn" class="w-full bg-zinc-900 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl active:scale-95 transition shadow-md">
+                        Rejoindre (Solo)
+                    </button>
+                    <button id="detail-group-btn" class="w-full bg-white hover:bg-zinc-50 text-zinc-800 font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-2xl active:scale-95 transition shadow-sm border border-zinc-200">
+                        <i class="fas fa-user-friends mr-1 text-zinc-400"></i> Réserver pour moi et mes potes
+                    </button>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="col-span-2">
-                        <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Pseudo public</label>
-                        <input type="text" id="prof-pseudo" class="input-premium" placeholder="Hicham_Padel">
-                    </div>
-                    <div><label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Prénom</label><input type="text" id="prof-prenom" class="input-premium" placeholder="Hicham"></div>
-                    <div><label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Nom</label><input type="text" id="prof-nom" class="input-premium" placeholder="EL JAMALI"></div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Tranche d'âge</label>
-                        <select id="prof-age" class="input-premium">
-                            <option value="18-35" selected>18 à 35 ans</option>
-                            <option value="30+">30 ans et +</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Quartier</label>
-                        <select id="prof-quartier" class="input-premium">
-                            <option value="Maarif / Anfa">Maarif / Anfa</option>
-                            <option value="Oasis / Californie">Oasis / Californie</option>
-                            <option value="Bouskoura">Bouskoura</option>
-                            <option value="Ain Diab">Ain Diab</option>
-                        </select>
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Statut de disponibilité</label>
-                        <select id="prof-status" class="input-premium font-bold">
-                            <option value="Dispo ce soir">🟢 Dispo ce soir</option>
-                            <option value="Dispo ce week-end">🟡 Dispo ce week-end</option>
-                            <option value="Pas dispo">🔴 Pas dispo en ce moment</option>
-                        </select>
-                    </div>
-                </div>
-
+    <!-- MODAL "RÉSERVATION GROUPE" -->
+    <div id="modal-groupe" class="hidden fixed inset-0 bg-zinc-900/80 backdrop-blur-sm z-[75] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-transform transform translate-y-full duration-300">
+        <div class="bg-white w-full max-w-sm rounded-t-[2.25rem] sm:rounded-[2.25rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="p-5 border-b border-zinc-100 flex justify-between items-center shrink-0">
                 <div>
-                    <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">N° Carte Nationale (CIN)</label>
-                    <input type="text" id="prof-cin" class="input-premium" placeholder="Ex: BE894512">
+                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#2a9d8f]">Réservation Multiple</span>
+                    <h2 class="text-xl font-black uppercase tracking-tight text-black mt-0.5">Mon Équipe</h2>
+                </div>
+                <button onclick="fermerModalGroupe()" class="w-8 h-8 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 hover:bg-zinc-200 transition"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="p-5 overflow-y-auto modal-scroll flex-1">
+                <div class="bg-zinc-50 p-3 rounded-2xl border border-zinc-200 mb-5">
+                    <label class="block text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">Ajouter un coéquipier</label>
+                    <input type="text" id="groupe-input-name" class="input-premium mb-2" placeholder="Pseudo exact ou Nom de l'invité...">
+                    <div class="flex gap-2">
+                        <button onclick="ajouterJoueurLa3bin()" class="flex-1 bg-zinc-900 text-white font-bold text-[9px] uppercase py-2.5 rounded-xl shadow-sm"><i class="fas fa-search mr-1"></i> Chercher Pseudo</button>
+                        <button onclick="ajouterInvite()" class="flex-1 bg-white border border-zinc-200 text-zinc-800 font-bold text-[9px] uppercase py-2.5 rounded-xl shadow-sm hover:bg-zinc-100"><i class="fas fa-user-plus mr-1"></i> Invité (Hors-app)</button>
+                    </div>
                 </div>
 
-                <div class="pt-2 border-t border-zinc-100">
-                    <label class="block text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider mb-2">Mon Niveau par Jeu</label>
-                    <div id="skills-selector-box" class="space-y-2.5"></div>
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3">Composition (<span id="groupe-count">1</span>/<span id="groupe-max">4</span> places)</h3>
+                <div id="groupe-roster-list" class="space-y-2 mb-2">
+                    <!-- Rempli en JS -->
+                </div>
+            </div>
+
+            <div class="p-5 bg-zinc-50 border-t border-zinc-200 shrink-0">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Total à payer</span>
+                    <span id="groupe-total-price" class="text-lg font-black text-black">50 DH</span>
+                </div>
+                <button id="btn-valider-groupe" onclick="validerReservationGroupe()" class="w-full bg-[#fbbf24] hover:bg-[#f59e0b] text-zinc-900 font-black text-xs uppercase tracking-widest py-3.5 rounded-2xl shadow-md active:scale-95 transition">
+                    Confirmer l'équipe
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODAL "MES MATCHS" -->
+    <div id="modal-mes-matchs" class="hidden fixed inset-0 bg-zinc-900/60 backdrop-blur-md z-[65] flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) toggleModalGeneric('modal-mes-matchs')">
+        <div class="bg-zinc-100 w-full max-w-md rounded-[2.25rem] shadow-2xl border border-zinc-200 overflow-hidden relative">
+            <div class="p-6 max-h-[88vh] overflow-y-auto modal-scroll space-y-4">
+                <button onclick="toggleModalGeneric('modal-mes-matchs')" class="absolute top-5 right-5 text-zinc-400 hover:text-black text-lg w-9 h-9 bg-white rounded-full flex items-center justify-center transition shadow-sm z-10"><i class="fas fa-times"></i></button>
+                
+                <div class="pb-3 border-b border-zinc-200 pr-10">
+                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Agenda Personnel</span>
+                    <h2 class="text-xl font-black tracking-tight text-black uppercase mt-0.5">Mes Matchs</h2>
                 </div>
 
-                <button onclick="saveLocalProfile()" class="w-full bg-zinc-900 hover:bg-black text-white font-extrabold text-xs py-4 rounded-2xl uppercase tracking-widest active:scale-95 transition shadow-lg">
-                    Enregistrer et Fermer
+                <div id="mes-matchs-list-ui" class="space-y-3">
+                    <!-- Rempli par chargerMesMatchs() -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL "VESTIAIRE EQUIPE" (TERRAIN TACTIQUE) -->
+    <div id="modal-vestiaire-equipe" class="hidden fixed inset-0 bg-zinc-900/90 backdrop-blur-md z-[75] flex items-center justify-center p-4 transition-transform transform translate-y-full duration-300">
+        <div class="bg-white w-full max-w-md rounded-[2.25rem] shadow-2xl overflow-hidden relative border border-zinc-200">
+            <div class="p-5 max-h-[88vh] overflow-y-auto modal-scroll">
+                <button onclick="fermerVestiaireEquipe()" class="absolute top-5 right-5 text-zinc-400 hover:text-black text-lg w-9 h-9 bg-zinc-100 rounded-full flex items-center justify-center shadow-sm z-20"><i class="fas fa-times"></i></button>
+                
+                <div class="pb-3 mb-4 border-b border-zinc-100 text-center pr-8 pl-8">
+                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#2a9d8f]">Vue Tactique</span>
+                    <h2 id="vestiaire-equipe-titre" class="text-base font-black tracking-tight text-black uppercase mt-1 leading-tight">Composition</h2>
+                </div>
+
+                <!-- LE TERRAIN -->
+                <div class="tactical-pitch rounded-2xl min-h-[220px] mb-5 p-4 flex flex-wrap justify-center items-center gap-4 relative shadow-inner overflow-hidden">
+                    <div class="absolute inset-x-0 top-1/2 h-0.5 bg-white/40 -translate-y-1/2"></div>
+                    <div class="absolute top-1/2 left-1/2 w-16 h-16 rounded-full border-2 border-white/40 -translate-x-1/2 -translate-y-1/2"></div>
+                    
+                    <div id="vestiaire-players-pitch" class="relative z-10 w-full flex flex-wrap justify-center gap-3">
+                        <!-- Les joueurs s'affichent ici -->
+                    </div>
+                </div>
+
+                <button onclick="ouvrirChatVestiaire()" class="w-full bg-[#fbbf24] hover:bg-[#f59e0b] text-zinc-900 font-extrabold text-[11px] uppercase tracking-widest py-3.5 rounded-xl active:scale-95 shadow-md flex items-center justify-center gap-2">
+                    <i class="fas fa-comments"></i> Ouvrir le Chat du RDV
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- POP-UP MODAL "VESTIAIRE" -->
-    <div id="modal-vestiaire" class="hidden fixed inset-0 bg-zinc-900/50 backdrop-blur-md z-[65] flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) toggleVestiaireModal()">
-        <div class="bg-white w-full max-w-lg rounded-[2.25rem] shadow-2xl border border-zinc-200 overflow-hidden relative">
-            <div class="p-6 max-h-[88vh] overflow-y-auto modal-scroll space-y-4">
-                <button onclick="toggleVestiaireModal()" class="absolute top-5 right-5 text-zinc-400 hover:text-black text-lg w-9 h-9 bg-zinc-100 rounded-full flex items-center justify-center transition z-10"><i class="fas fa-times"></i></button>
-                <div class="pb-3 border-b border-zinc-100 pr-10">
-                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#2a9d8f]">Vestiaire</span>
-                    <h2 class="text-xl font-black tracking-tight text-black uppercase mt-0.5">Mes Matchs & Vote MVP</h2>
+    <!-- MODAL "CHAT VESTIAIRE" (Avec Quick Replies) -->
+    <div id="modal-chat" class="hidden fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-[85] flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4 transition-transform transform translate-y-full duration-300">
+        <div class="bg-zinc-50 w-full max-w-sm sm:rounded-[2rem] rounded-t-[2rem] shadow-2xl overflow-hidden relative border border-zinc-200 flex flex-col h-[75vh] sm:h-[600px]">
+            <div class="p-4 border-b border-zinc-200 bg-white flex justify-between items-center shrink-0">
+                <h3 class="font-black text-sm uppercase text-zinc-900">Salon Chat</h3>
+                <button onclick="fermerChat()" class="text-zinc-400 w-8 h-8 bg-zinc-50 rounded-full flex items-center justify-center"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div id="chat-messages-box" class="flex-1 overflow-y-auto p-4 flex flex-col">
+                <!-- Messages injectés -->
+            </div>
+            
+            <div class="p-3 bg-white border-t border-zinc-200 shrink-0">
+                <div class="flex gap-2 overflow-x-auto scrollbar-hide mb-3 pb-1">
+                    <button onclick="envoyerMessageRapide('J\\'arrive !')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-full text-[10px] font-bold text-zinc-700 whitespace-nowrap">🏃‍♂️ J'arrive</button>
+                    <button onclick="envoyerMessageRapide('Retard de 5 min')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-full text-[10px] font-bold text-zinc-700 whitespace-nowrap">⏱️ Retard 5m</button>
+                    <button onclick="envoyerMessageRapide('Je suis sur place')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-full text-[10px] font-bold text-zinc-700 whitespace-nowrap">📍 Sur place</button>
                 </div>
-                <div id="vestiaire-modal-content" class="space-y-3"></div>
+                <div class="flex gap-2">
+                    <input type="text" id="chat-input-text" class="input-premium !rounded-full !py-2 text-xs" placeholder="Votre message...">
+                    <button onclick="envoyerMessageChat()" class="w-10 h-10 bg-zinc-900 text-white rounded-full flex items-center justify-center shrink-0"><i class="fas fa-paper-plane text-xs"></i></button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- BARRE DE NAVIGATION MOBILE -->
-    <div id="mobile-bottom-nav" class="lg:hidden fixed bottom-5 inset-x-0 flex justify-center z-40 px-4 pointer-events-none">
-        <nav class="w-full max-w-md bg-white/95 backdrop-blur-xl border border-zinc-200 shadow-xl rounded-3xl flex justify-around p-2 pointer-events-auto items-center">
-            <button onclick="switchMobileTab('feed')" class="text-black flex flex-col items-center p-2 w-16 active:scale-90">
-                <i class="fas fa-fire text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Matchs</span>
-            </button>
-            <button onclick="activerGpsTempsReel(true)" class="text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90">
-                <i class="fas fa-location-crosshairs text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Scanner</span>
-            </button>
-            <button onclick="toggleModal()" class="text-white bg-zinc-900 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 -mt-8 border-4 border-white">
-                <i class="fas fa-plus text-xl text-[#e05a47]"></i>
-            </button>
-            <button onclick="toggleVestiaireModal()" class="text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90">
-                <i class="fas fa-trophy text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Vestiaire</span>
-            </button>
-            <button onclick="toggleAccountModal()" class="text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90">
-                <i class="fas fa-user-check text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Compte</span>
-            </button>
-        </nav>
+    <!-- POP-UP MODAL "MON COMPTE" AVEC AGENDA -->
+    <div id="modal-account" class="hidden fixed inset-0 bg-zinc-900/60 backdrop-blur-md z-[65] flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) toggleAccountModal()">
+        <div class="bg-white w-full max-w-md rounded-[2.25rem] shadow-2xl border border-zinc-200 flex flex-col max-h-[90vh] overflow-hidden relative">
+            <div class="p-6 overflow-y-auto modal-scroll space-y-4 flex-1">
+                <button onclick="toggleAccountModal()" class="absolute top-5 right-5 text-zinc-400 hover:text-black text-lg w-9 h-9 bg-zinc-100 rounded-full flex items-center justify-center transition z-10"><i class="fas fa-times"></i></button>
+                
+                <div class="pb-3 border-b border-zinc-100 flex justify-between items-center pr-10">
+                    <div>
+                        <span class="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400">Identité & Préférences</span>
+                        <h2 class="text-xl font-black tracking-tight text-black uppercase mt-0.5">Mon Compte</h2>
+                    </div>
+                </div>
+
+                <div class="bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200/80">
+                    <div class="flex items-center gap-3.5 mb-3">
+                        <img id="prof-avatar-preview" src="" class="w-16 h-16 rounded-2xl object-cover object-top border border-zinc-300 bg-white shrink-0 shadow-sm" alt="Avatar">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 flex-wrap mb-2">
+                                <span id="prof-id-badge" class="text-[10px] font-black bg-zinc-900 text-white px-2 py-0.5 rounded uppercase tracking-wider">#LA3-001</span>
+                                <div id="cin-status-badge"></div>
+                            </div>
+                            <button onclick="toggleAvatarSearchModal()" class="w-full bg-white border border-zinc-200 text-zinc-700 text-[10px] font-bold py-2 rounded-lg hover:border-black transition shadow-sm uppercase tracking-wider">
+                                <i class="fas fa-search mr-1"></i> Changer d'avatar
+                            </button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="prof-avatar">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="col-span-2"><label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Pseudo public</label><input type="text" id="prof-pseudo" class="input-premium text-center" placeholder="Ex: Hicham_Padel"></div>
+                    <div><label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Prénom</label><input type="text" id="prof-prenom" class="input-premium" placeholder="Hicham"></div>
+                    <div><label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Nom</label><input type="text" id="prof-nom" class="input-premium" placeholder="EL JAMALI"></div>
+                    <div>
+                        <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Tranche d'âge</label>
+                        <select id="prof-age" class="input-premium"><option value="18-35" selected>18 à 35 ans</option><option value="30+">30 ans et plus</option></select>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">Quartier Principal</label>
+                        <select id="prof-quartier" class="input-premium"><option value="Maarif / Anfa">Maarif / Anfa</option><option value="Oasis / Californie">Oasis / Californie</option><option value="Bouskoura">Bouskoura</option><option value="Ain Diab">Ain Diab</option></select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-[9px] font-extrabold text-zinc-400 uppercase tracking-wider mb-1">N° Carte Nationale (Vérification CIN)</label>
+                        <input type="text" id="prof-cin" class="input-premium" placeholder="Ex: BE894512">
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-zinc-200">
+                    <label class="block text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest mb-3">Mes Disponibilités (7 Jours)</label>
+                    <div id="agenda-days-container" class="flex justify-between gap-1.5 p-1 bg-zinc-50 rounded-2xl border border-zinc-200/80">
+                        <!-- Généré dynamiquement en JS (Lu, Ma, Me...) -->
+                    </div>
+                    <p class="text-[9px] text-zinc-400 mt-2 italic text-center font-medium">Sélectionnez les jours où vous êtes disponible cette semaine.</p>
+                </div>
+
+                <div class="pt-2 border-t border-zinc-100">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Mon Niveau par Jeu</label>
+                        <span class="text-[9px] font-bold text-zinc-400">Cliquez pour désactiver</span>
+                    </div>
+                    <div id="skills-selector-box" class="space-y-2.5"></div>
+                </div>
+
+                <button onclick="saveLocalProfile()" class="w-full bg-zinc-900 hover:bg-black text-white font-extrabold text-xs py-4 rounded-2xl uppercase tracking-widest active:scale-95 transition shadow-lg mt-2 shrink-0">
+                    Enregistrer le Profil
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL "NOUVEAU MATCH" -->
-    <div id="modal-organiser" class="hidden fixed inset-0 bg-zinc-900/50 z-50 flex flex-col justify-end lg:justify-center backdrop-blur-sm p-0 lg:p-4" onclick="if(event.target === this) toggleModal()">
+    <div id="modal-organiser" class="hidden fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-[70] flex flex-col justify-end lg:justify-center p-0 lg:p-4" onclick="if(event.target === this) toggleModal()">
         <div class="bg-white w-full max-w-lg mx-auto rounded-t-[2.25rem] lg:rounded-[2.25rem] shadow-2xl border border-zinc-200 overflow-hidden relative">
             <div class="p-6 max-h-[88vh] overflow-y-auto modal-scroll">
                 <button onclick="toggleModal()" class="absolute top-6 right-6 text-zinc-400 hover:text-black text-xl w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center z-10"><i class="fas fa-times"></i></button>
@@ -990,10 +1548,11 @@
                         </div>
                         <input type="hidden" id="input-sport">
                         <div id="drop-sport" class="custom-dropdown hidden mt-2 bg-zinc-50 border border-zinc-200 rounded-2xl shadow-inner p-2 space-y-1">
-                            <div onclick="selectSport('Football')" class="px-4 py-2.5 hover:bg-white rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-futbol text-[#2a9d8f] text-base"></i> Football</div>
-                            <div onclick="selectSport('Padel')" class="px-4 py-2.5 hover:bg-white rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-table-tennis-paddle-ball text-[#d4a338] text-base"></i> Padel</div>
-                            <div onclick="selectSport('Basketball')" class="px-4 py-2.5 hover:bg-white rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-basketball text-[#e06d47] text-base"></i> Basketball</div>
-                            <div onclick="selectSport('Jeux de société')" class="px-4 py-2.5 hover:bg-white rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-chess-knight text-[#457b9d] text-base"></i> Jeux de société & Cartes</div>
+                            <div onclick="selectSport('Football')" class="px-4 py-2.5 hover:bg-white rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-futbol text-zinc-800 text-base"></i> Football</div>
+                            <div onclick="selectSport('Padel')" class="px-4 py-2.5 hover:bg-white rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-table-tennis-paddle-ball text-slate-600 text-base"></i> Padel</div>
+                            <div onclick="selectSport('Musculation')" class="px-4 py-2.5 hover:bg-white rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-dumbbell text-zinc-900 text-base"></i> Musculation</div>
+                            <div onclick="selectSport('Running')" class="px-4 py-2.5 hover:bg-white rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-running text-purple-600 text-base"></i> Running</div>
+                            <div onclick="selectSport('Jeux de société')" class="px-4 py-2.5 hover:bg-white rounded-xl cursor-pointer font-bold text-xs flex items-center gap-3"><i class="fas fa-chess-knight text-slate-500 text-base"></i> Jeux de société</div>
                         </div>
                     </div>
 
@@ -1007,7 +1566,7 @@
                     </div>
 
                     <div class="custom-dropdown-container relative">
-                        <label class="block text-[10px] font-black text-zinc-400 mb-1 uppercase tracking-widest">3. Club / Lieu</label>
+                        <label class="block text-[10px] font-black text-zinc-400 mb-1 uppercase tracking-widest">3. Lieu</label>
                         <input type="text" id="input-lieu" placeholder="Tapez ou choisissez un club..." class="input-premium" onfocus="toggleCustomDropdown('drop-lieu-list', true)" onkeyup="renderLieux(this.value)" autocomplete="off">
                         <div id="drop-lieu-list" class="custom-dropdown hidden mt-2 bg-zinc-50 border border-zinc-200 rounded-2xl shadow-inner max-h-48 overflow-y-auto p-2 space-y-1"></div>
                     </div>
@@ -1022,7 +1581,7 @@
                             <div id="drop-date" class="custom-dropdown hidden mt-2 bg-zinc-50 border border-zinc-200 rounded-2xl shadow-inner max-h-48 overflow-y-auto p-2 space-y-1"></div>
                         </div>
                         <div class="custom-dropdown-container relative">
-                            <label class="block text-[10px] font-black text-zinc-400 mb-1 uppercase tracking-widest">Heure (30m)</label>
+                            <label class="block text-[10px] font-black text-zinc-400 mb-1 uppercase tracking-widest">Heure</label>
                             <div class="input-premium flex justify-between items-center cursor-pointer" onclick="toggleCustomDropdown('drop-time')">
                                 <span id="label-time" class="text-zinc-400">Heure...</span><i class="fas fa-chevron-down text-zinc-400"></i>
                             </div>
@@ -1038,35 +1597,18 @@
                         </div>
                         <div>
                             <label class="block text-[9px] font-black text-zinc-400 mb-1 uppercase tracking-widest">Tranche d'âge</label>
-                            <select id="input-age-bracket" class="input-premium !px-2">
-                                <option value="18-35" selected>18 à 35 ans</option>
-                                <option value="30+">30 ans et +</option>
+                            <select id="input-age-bracket" class="input-premium !px-2 text-center">
+                                <option value="18-35" selected>18-35 ans</option>
+                                <option value="30+">30+ ans</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-[9px] font-black text-zinc-400 mb-1 uppercase tracking-widest">Prix (MAD 💰)</label>
-                            <input type="number" id="input-price" value="50" step="10" min="0" class="input-premium text-center">
+                            <label class="block text-[9px] font-black text-zinc-400 mb-1 uppercase tracking-widest">Prix (MAD)</label>
+                            <input type="number" id="input-price" value="50" step="10" min="0" class="input-premium text-center text-zinc-900 font-black">
                         </div>
                     </div>
 
-                    <div class="bg-zinc-50 border border-zinc-200 p-3.5 rounded-2xl space-y-2">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="font-extrabold text-black text-xs uppercase">🔒 Réservé à mes amis</h4>
-                                <p class="text-[10px] text-zinc-500 font-semibold">Seuls vos amis invités pourront le voir.</p>
-                            </div>
-                            <input type="checkbox" id="input-friends-only" class="w-5 h-5 accent-zinc-900 rounded">
-                        </div>
-                        <div class="pt-2 border-t border-zinc-200/60 flex items-center justify-between">
-                            <div>
-                                <h4 class="font-extrabold text-black text-xs uppercase">Validation Manuelle</h4>
-                                <p class="text-[10px] text-zinc-500 font-semibold">Vérifier le profil avant d'ouvrir le salon.</p>
-                            </div>
-                            <input type="checkbox" id="input-validation" class="w-5 h-5 accent-zinc-900 rounded" checked>
-                        </div>
-                    </div>
-
-                    <button type="button" id="btn-creer" onclick="creerPartie()" class="w-full bg-zinc-900 hover:bg-black text-white font-black text-xs py-4 rounded-2xl active:scale-95 shadow-lg uppercase tracking-widest">
+                    <button type="button" id="btn-creer" onclick="creerPartie()" class="w-full bg-zinc-900 hover:bg-black text-white font-black text-xs py-4 rounded-2xl active:scale-95 shadow-lg uppercase tracking-widest mt-2">
                         Publier le Match
                     </button>
                 </form>
@@ -1074,19 +1616,142 @@
         </div>
     </div>
 
-    <!-- MODAL SALON CHAT DU RDV -->
-    <div id="modal-chat" class="fixed inset-0 bg-zinc-50 z-[70] transform translate-y-full transition-transform duration-300 flex flex-col">
-        <div class="bg-white border-b border-zinc-200 p-4 flex items-center justify-between shadow-sm">
-            <button onclick="fermerChat()" class="text-zinc-600 hover:text-black font-black text-xs uppercase tracking-widest"><i class="fas fa-chevron-down mr-1.5"></i> Fermer</button>
-            <h2 id="chat-rdv-titre" class="font-black text-sm uppercase tracking-tight text-black">Salon du RDV</h2>
-            <span class="text-[9px] font-black uppercase bg-emerald-50 text-[#2a9d8f] border border-emerald-200 px-2 py-0.5 rounded">Actif</span>
-        </div>
-        <div id="chat-messages-box" class="flex-1 p-5 flex flex-col justify-end overflow-y-auto max-w-2xl mx-auto w-full"></div>
-        <div class="bg-white border-t border-zinc-200 p-4 flex items-center gap-2 max-w-2xl mx-auto w-full">
-            <input type="text" id="chat-input-text" placeholder="Message aux joueurs du RDV..." class="input-premium flex-1 !py-3 !rounded-full" onkeydown="if(event.key==='Enter') envoyerMessageRDV()">
-            <button onclick="envoyerMessageRDV()" class="bg-zinc-900 text-white w-11 h-11 rounded-full flex items-center justify-center active:scale-90 shadow-md shrink-0"><i class="fas fa-paper-plane text-xs"></i></button>
-        </div>
+    <!-- BARRE DE NAVIGATION MOBILE -->
+    <div id="mobile-bottom-nav" class="lg:hidden fixed bottom-5 inset-x-0 flex justify-center z-40 px-4 pointer-events-none">
+        <nav class="w-full max-w-md bg-white/95 backdrop-blur-xl border border-zinc-200 shadow-xl rounded-3xl flex justify-around p-2 pointer-events-auto items-center">
+            <button id="mnav-feed" onclick="switchMobileTab('feed')" class="text-black flex flex-col items-center p-2 w-16 active:scale-90">
+                <i class="fas fa-fire text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Arène</span>
+            </button>
+            <button id="mnav-radar" onclick="activerGpsTempsReel(true)" class="text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90">
+                <i class="fas fa-location-crosshairs text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Scanner</span>
+            </button>
+            <button onclick="toggleModal()" class="text-white bg-zinc-900 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 -mt-8 border-4 border-white">
+                <i class="fas fa-plus text-xl text-white"></i>
+            </button>
+            <button id="mnav-manage" onclick="switchMobileTab('manage')" class="text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90 relative">
+                <i class="fas fa-calendar-check text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Matchs</span>
+                <span class="absolute top-1 right-3 flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-white"></span>
+                </span>
+            </button>
+            <button id="mnav-account" onclick="switchMobileTab('account')" class="text-zinc-400 flex flex-col items-center p-2 w-16 active:scale-90">
+                <i class="fas fa-user-circle text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest">Profil</span>
+            </button>
+        </nav>
     </div>
+<script>
+        // --- 3D SCROLL ANIMATION (Three.js) ---
+        if (typeof THREE !== 'undefined') {
+            const canvas = document.getElementById('ball-canvas');
+            
+            if (canvas) {
+                const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+                renderer.setSize(window.innerWidth, window.innerHeight);
 
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+                camera.position.z = 6;
+
+                const geometry = new THREE.SphereGeometry(1.5, 64, 64);
+                const material = new THREE.MeshPhysicalMaterial({
+                    color: 0x18181b, 
+                    metalness: 0.9,
+                    roughness: 0.1,
+                    clearcoat: 1.0,
+                    clearcoatRoughness: 0.1
+                });
+                const sphere = new THREE.Mesh(geometry, material);
+                scene.add(sphere);
+
+                const light1 = new THREE.PointLight(0x10b981, 5, 50);
+                light1.position.set(5, 5, 5);
+                scene.add(light1);
+
+                const light2 = new THREE.PointLight(0xf59e0b, 5, 50);
+                light2.position.set(-5, -5, 5);
+                scene.add(light2);
+
+                scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+
+                window.addEventListener('scroll', () => {
+                    const y = window.scrollY;
+                    sphere.rotation.x = y * 0.005;
+                    sphere.rotation.y = y * 0.002;
+                    sphere.position.z = -(y * 0.005);
+                });
+
+                function animate() {
+                    requestAnimationFrame(animate);
+                    sphere.rotation.y += 0.001;
+                    renderer.render(scene, camera);
+                }
+                animate();
+
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+        }
+        
+        // --- PHYSIQUE DE SCROLL ET CURSEUR (ADN CUBERTO) ---
+        const cursor = document.getElementById('cuberto-cursor');
+        if (cursor) {
+            // 1. Mouvement lourd avec inertie
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
+            });
+
+            // 2. Survol : Taille premium chirurgicale (36px)
+            document.addEventListener('mouseover', (e) => {
+                if (e.target && e.target.closest && e.target.closest('button, a, [onclick], input, .cursor-pointer')) {
+                    cursor.style.width = '36px';
+                    cursor.style.height = '36px';
+                }
+            });
+
+            // 3. Sortie : Retour au petit point (10px)
+            document.addEventListener('mouseout', (e) => {
+                if (e.target && e.target.closest && e.target.closest('button, a, [onclick], input, .cursor-pointer')) {
+                    cursor.style.width = '10px';
+                    cursor.style.height = '10px';
+                }
+            });
+
+            // 4. Animation de clic : Sensation de pression physique
+            document.addEventListener('mousedown', () => {
+                cursor.style.width = '6px';
+                cursor.style.height = '6px';
+            });
+            
+            document.addEventListener('mouseup', (e) => {
+                if (e.target && e.target.closest && e.target.closest('button, a, [onclick], input, .cursor-pointer')) {
+                    cursor.style.width = '36px';
+                    cursor.style.height = '36px';
+                } else {
+                    cursor.style.width = '10px';
+                    cursor.style.height = '10px';
+                }
+            });
+        }
+
+        // --- INERTIE DU SCROLL (LENIS) ---
+        try {
+            const lenis = new Lenis({
+                duration: 1.2,
+                smooth: true
+            });
+            function raf(time) {
+                lenis.raf(time);
+                requestAnimationFrame(raf);
+            }
+            requestAnimationFrame(raf);
+        } catch(e) {
+            console.error("Erreur Lenis :", e);
+        }
+    </script>
 </body>
 </html>
