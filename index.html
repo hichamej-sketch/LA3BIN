@@ -999,42 +999,63 @@
             const d = new Date(partie.game_time);
             const timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
             
-            // Simulation de la Jauge de Tension pour le rendu visuel
             const totalPlaces = partie.players_needed || 10;
-            const placesPrises = Math.floor(Math.random() * (totalPlaces - 1)) + 1; // Fausse donnée pour le design
+            const placesPrises = Math.floor(Math.random() * (totalPlaces - 1)) + 1; 
             const percentage = (placesPrises / totalPlaces) * 100;
             const gaugeColor = percentage > 80 ? 'bg-red-500' : (percentage > 50 ? 'bg-amber-400' : 'bg-emerald-500');
 
+            // --- IMAGES DE BANNIÈRE PAR SPORT (CORRIGÉES) ---
+            const type = (partie.activity_type || '').toLowerCase();
+            let bannerImg = 'https://images.unsplash.com/photo-1551958219-acbc608c6aff?q=80&w=800'; // Défaut
+            
+            if (type.includes('foot')) bannerImg = 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800';
+            else if (type.includes('padel')) bannerImg = 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=800';
+            else if (type.includes('tennis')) bannerImg = 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=800';
+            else if (type.includes('basket')) bannerImg = 'https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=800';
+            else if (type.includes('muscu')) bannerImg = 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=800';
+            else if (type.includes('surf')) bannerImg = 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?q=80&w=800';
+
             return `
-                <div data-aos="fade-up" class="group bg-white rounded-3xl p-5 mb-5 border border-zinc-200 shadow-sm relative overflow-hidden active:scale-[0.98] transition duration-500 hover:shadow-xl cursor-pointer" onclick="ouvrirDetailsMatch('${partie.id}')">
+                <div data-aos="fade-up" class="group bg-white rounded-3xl border border-zinc-200/80 shadow-sm overflow-hidden mb-6 active:scale-[0.98] transition duration-500 hover:shadow-xl cursor-pointer" onclick="ouvrirDetailsMatch('${partie.id}')">
                     
-                    <!-- Image Parallax (Glisse légèrement au survol/scroll) -->
-                    <div class="absolute inset-0 z-0 opacity-[0.03] bg-[url('https://images.unsplash.com/photo-1551958219-acbc608c6aff?q=80&w=600')] bg-cover bg-center transition-transform duration-1000 group-hover:scale-110"></div>
-                    
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl border ${cfg.cardBorder} ${cfg.iconBg}">
-                                    <i class="fas ${cfg.icon} ${cfg.text}"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-black uppercase tracking-tight text-zinc-900">${meta.subGame || partie.activity_type}</h3>
-                                    <p class="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest"><i class="fas fa-location-dot"></i> ${partie.location_name}</p>
-                                </div>
-                            </div>
-                            
-                            <!-- Badges (Hiérarchie) -->
-                            <div class="flex flex-col gap-1.5 items-end">
-                                <span class="px-2 py-1 bg-zinc-900 text-white text-[9px] font-black uppercase tracking-widest rounded shadow-sm">${meta.priceMad > 0 ? meta.priceMad + ' DH' : 'Gratuit'}</span>
-                                <span class="px-2 py-1 bg-zinc-100 border border-zinc-200 text-zinc-500 text-[8px] font-black uppercase tracking-widest rounded">${meta.hostSkill}</span>
-                            </div>
+                    <!-- MOITIÉ HAUTE : BANNIÈRE GRAPHIQUE -->
+                    <div class="relative h-36 w-full overflow-hidden bg-zinc-100">
+                        <img src="${bannerImg}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Sport Banner">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                        
+                        <!-- Badge Prix -->
+                        <div class="absolute top-3 right-3 bg-zinc-900/80 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+                            ${meta.priceMad > 0 ? meta.priceMad + ' DH' : 'Gratuit'}
                         </div>
 
-                        <!-- Jauge de Tension (Plei) -->
-                        <div class="mt-2">
-                            <div class="flex justify-between items-end mb-2">
-                                <span class="text-[10px] font-black text-zinc-900 bg-zinc-100 px-2 py-1 rounded-md border border-zinc-200"><i class="fas fa-clock text-zinc-400 mr-1"></i> ${timeStr}</span>
-                                <span class="text-[9px] font-black uppercase tracking-widest text-zinc-400">${placesPrises}/${totalPlaces} Joueurs</span>
+                        <!-- Badge Niveau / Hôte -->
+                        <div class="absolute bottom-3 left-3 flex items-center gap-2">
+                            <span class="bg-white/20 backdrop-blur-md text-white text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-md">
+                                ${meta.hostSkill || 'Tous niveaux'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- MOITIÉ BASSE : INFORMATIONS -->
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-base font-black uppercase tracking-tight text-zinc-900">${meta.subGame || partie.activity_type}</h3>
+                            <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase tracking-wider border border-emerald-100">Confirmé</span>
+                        </div>
+                        
+                        <p class="text-xs font-semibold text-zinc-500 mb-4 flex items-center gap-1.5">
+                            <i class="fas fa-location-dot text-zinc-400"></i> ${partie.location_name}
+                        </p>
+
+                        <!-- Heure et Jauge de Tension -->
+                        <div class="pt-3 border-t border-zinc-100">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-zinc-700 bg-zinc-100 px-2.5 py-1 rounded-lg">
+                                    <i class="fas fa-clock text-zinc-400 mr-1"></i> ${timeStr}
+                                </span>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                                    ${placesPrises}/${totalPlaces} Joueurs
+                                </span>
                             </div>
                             <div class="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
                                 <div class="h-full ${gaugeColor} rounded-full transition-all duration-1000" style="width: ${percentage}%"></div>
