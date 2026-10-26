@@ -1,0 +1,441 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+    --bg-warm: #f6f8f6;
+    --charcoal: #0f2922;
+    --accent: #0f392b;
+    --accent-lime: #d9f99d;
+}
+
+body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: var(--bg-warm); 
+    color: var(--charcoal); 
+    -webkit-tap-highlight-color: transparent; 
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.modal-scroll::-webkit-scrollbar { width: 5px; }
+.modal-scroll::-webkit-scrollbar-track { background: transparent; margin: 16px 0; }
+.modal-scroll::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 9999px; }
+
+/* =========================================================================
+   LANDING PAGE : COMPACT STICKY BAR & SMOOTH SLIDE-UP POUR "QUI SOMMES-NOUS"
+   ========================================================================= */
+#landing-hero {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: radial-gradient(circle at 50% 20%, #162220 0%, #0b1110 60%, #070a09 100%);
+    display: block;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    transition: transform 0.85s cubic-bezier(0.7, 0, 0.2, 1), opacity 0.75s ease;
+}
+
+/* Capsule Sticky centrée sans grand vide entre LA3BIN et Continuer */
+#landing-sticky-nav {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translate(-50%, -140%);
+    width: min(92vw, 620px);
+    z-index: 95;
+    padding: 0.65rem 1rem 0.65rem 1.35rem;
+    background: rgba(11, 17, 16, 0.92);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 9999px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    opacity: 0;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+}
+#landing-sticky-nav.sticky-visible {
+    transform: translate(-50%, 0);
+    opacity: 1;
+}
+
+#landing-shake-wrapper {
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+}
+#landing-hero.scrolled-down #landing-shake-wrapper {
+    transform: translateY(-45px) scale(0.92);
+    opacity: 0.15;
+    pointer-events: none;
+}
+
+/* Qui sommes-nous remonte immédiatement sans espace vide */
+#landing-about-section {
+    margin-top: -8vh;
+    transform: translateY(35px);
+    opacity: 0.85;
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease;
+}
+#landing-hero.scrolled-down #landing-about-section {
+    transform: translateY(-30px);
+    opacity: 1;
+}
+
+.landing-grid-overlay {
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+}
+
+.landing-title-row {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    user-select: none;
+}
+
+.cutout-letters {
+    font-size: clamp(3.8rem, 15vw, 12.5rem);
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.055em;
+    text-transform: uppercase;
+    background-image: url('https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=1600&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center 45%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 20px 35px rgba(0,0,0,0.5));
+    animation: slowPan 14s ease-in-out infinite alternate;
+}
+
+.hero-punct-wrapper {
+    display: inline-flex;
+    justify-content: center;
+    width: clamp(2rem, 6.5vw, 5.5rem);
+    margin-left: 0.24em;
+    overflow: hidden;
+    height: clamp(3.8rem, 15vw, 12.5rem);
+    vertical-align: baseline;
+}
+
+.hero-punct {
+    font-size: clamp(3.8rem, 15vw, 12.5rem);
+    font-weight: 900;
+    line-height: 0.9;
+    display: inline-block;
+    transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.24s ease, color 0.24s ease;
+}
+
+@keyframes slowPan {
+    0% { background-position: 35% 40%; }
+    100% { background-position: 65% 60%; }
+}
+
+@keyframes soft-vibe-1 { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0.6px, -0.5px, 0); } }
+@keyframes soft-vibe-2 { 0%, 100% { transform: translate3d(0, 0, 0) scale(1.005); } 50% { transform: translate3d(1.2px, -1px, 0) scale(1.007); } }
+@keyframes soft-vibe-3 { 0%, 100% { transform: translate3d(0, 0, 0) scale(1.012); } 50% { transform: translate3d(-1.8px, 1.5px, 0) scale(1.015); } }
+
+.shake-stage-1 { animation: soft-vibe-1 0.09s infinite linear; }
+.shake-stage-2 { animation: soft-vibe-2 0.07s infinite linear; }
+.shake-stage-3 { animation: soft-vibe-3 0.05s infinite linear; }
+
+.landing-zoom-out {
+    transform: scale(5.5) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* =========================================================================
+   TRANSITION DOUCE 2 COLONNES -> 3 COLONNES AVEC SLIDE-DOWN DES CARTES DU HAUT
+   ========================================================================= */
+.logo-container { display: inline-flex; align-items: baseline; }
+.logo-punct-wrapper { display: inline-flex; justify-content: center; width: 0.68em; margin-left: 0.14em; overflow: hidden; height: 1.1em; vertical-align: baseline; }
+.logo-punct { display: inline-block; transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.24s ease, color 0.24s ease; }
+.slide-out { transform: translateY(85%); opacity: 0; }
+.slide-in { transform: translateY(-85%); opacity: 0; }
+
+.input-premium {
+    width: 100%; 
+    background-color: #f4f4f5; 
+    border: 1.5px solid #e4e4e7; 
+    border-radius: 1rem;
+    padding: 0.7rem 0.9rem; 
+    color: #18181b; 
+    font-weight: 700; 
+    font-size: 0.8125rem; 
+    outline: none; 
+    transition: all 0.2s ease;
+}
+.input-premium:focus { 
+    border-color: #0f392b; 
+    background-color: #ffffff; 
+    box-shadow: 0 4px 12px rgba(15, 57, 43, 0.08); 
+}
+
+.custom-dropdown { border-radius: 1rem; }
+.custom-dropdown > div { border-radius: 0.8rem; }
+
+.bento-panel { 
+    background-color: #ffffff; 
+    border: 1px solid #e6ebe8; 
+    border-radius: 1.5rem; 
+    padding: 1.25rem; 
+    box-shadow: 0 4px 20px rgba(15, 41, 34, 0.03); 
+}
+
+@media (min-width: 1024px) {
+    #panel-feed {
+        transition: grid-column 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    #panel-left-col {
+        transition: opacity 0.45s ease, transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    #main-grid.scrolled-3-cols #panel-feed {
+        grid-column: span 12 / span 12 !important;
+    }
+    #main-grid.scrolled-3-cols #arene-feed {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+    #main-grid.scrolled-3-cols #panel-left-col {
+        opacity: 0;
+        transform: translateX(40px);
+        pointer-events: none;
+        position: absolute;
+        right: 0;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+    }
+}
+
+/* Animation de glissement vers le bas des 4 premières cartes lors du passage en 3 colonnes */
+@keyframes topCardsSlideDown {
+    0% {
+        opacity: 0.55;
+        transform: translateY(-42px) scale(0.97);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+.card-sliding-down {
+    animation: topCardsSlideDown 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Mode Simulateur Mobile */
+body.mobile-sim-mode #main-wrapper,
+body.mobile-sim-mode #page-full-profile {
+    max-width: 430px !important; 
+    margin: 1rem auto !important;
+    background: #ffffff; 
+    border: 8px solid #18181b; 
+    border-radius: 2.75rem; 
+    min-height: 820px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); 
+    padding-bottom: 5.5rem !important;
+}
+body.mobile-sim-mode #main-grid {
+    grid-template-columns: 1fr !important;
+}
+body.mobile-sim-mode #panel-feed,
+body.mobile-sim-mode #panel-left-col {
+    grid-column: span 1 / span 1 !important;
+}
+body.mobile-sim-mode #arene-feed {
+    grid-template-columns: 1fr !important;
+}
+body.mobile-sim-mode #mobile-bottom-nav { display: flex !important; }
+
+.spot-pop-in {
+    animation: popScaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes popScaleIn {
+    0% { opacity: 0; transform: scale(0.65); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* =========================================================================
+   VESTIAIRE TACTIQUE : DOUBLE BUTS (HAUT & BAS), MULTI-SPORTS & TRANSPARENT
+   ========================================================================= */
+.vestiaire-pitch-surface {
+    background: radial-gradient(circle at 50% 50%, #1d6f5e 0%, #0f392b 100%);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.3);
+    touch-action: none;
+    user-select: none;
+}
+
+.pitch-theme-foot { background: radial-gradient(circle at 50% 50%, #1d6f5e 0%, #0f392b 100%) !important; }
+.pitch-theme-padel { background: radial-gradient(circle at 50% 50%, #1e6091 0%, #184e77 100%) !important; }
+.pitch-theme-tennis { background: radial-gradient(circle at 50% 50%, #c85a32 0%, #9e3f1d 100%) !important; }
+.pitch-theme-basket { background: radial-gradient(circle at 50% 50%, #d9822b 0%, #995212 100%) !important; }
+.pitch-theme-boxing { background: radial-gradient(circle at 50% 50%, #27272a 0%, #09090b 100%) !important; }
+.pitch-theme-mma { background: radial-gradient(circle at 50% 50%, #18181b 0%, #000000 100%) !important; }
+.pitch-theme-water { background: radial-gradient(circle at 50% 50%, #0284c7 0%, #0369a1 100%) !important; }
+.pitch-theme-track { background: radial-gradient(circle at 50% 50%, #b45309 0%, #78350f 100%) !important; }
+
+.sticker-transparent-mode {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+.sticker-transparent-mode .pitch-line-el {
+    border-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.goalpost-top {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 88px;
+    height: 14px;
+    border: 2.5px solid rgba(255, 255, 255, 0.75);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    pointer-events: none;
+    z-index: 15;
+}
+
+.goalpost-bottom {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 96px;
+    height: 18px;
+    border: 3px solid rgba(255, 255, 255, 0.92);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    background: repeating-linear-gradient(45deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 4px, transparent 4px, transparent 8px);
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.25);
+    pointer-events: none;
+    z-index: 15;
+}
+
+.place-moi-badge {
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #e07a5f;
+    color: #ffffff;
+    font-size: 7.5px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    padding: 1.5px 5px;
+    border-radius: 9999px;
+    white-space: nowrap;
+    border: 1.5px solid #ffffff;
+    z-index: 25;
+    pointer-events: none;
+}
+
+.pinched-player-ghost {
+    position: fixed;
+    z-index: 999999;
+    pointer-events: none;
+    width: 54px;
+    height: 54px;
+    border-radius: 9999px;
+    transform: translate(-50%, -50%) scale(1.15);
+    box-shadow: 0 18px 35px rgba(0, 0, 0, 0.45), 0 0 0 3px #ffffff;
+}
+
+.pinched-crown-ghost {
+    position: fixed;
+    z-index: 999999;
+    pointer-events: none;
+    width: 46px;
+    height: 46px;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #18181b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: 0 15px 30px rgba(245, 158, 11, 0.55), 0 0 0 3px #ffffff;
+}
+
+.drop-zone {
+    position: absolute;
+    transform: translate(-50%, -50%) !important;
+}
+
+.tactical-spot-highlight {
+    box-shadow: 0 0 0 5px rgba(217, 249, 157, 0.85) !important;
+    border-color: #ffffff !important;
+    background-color: rgba(217, 249, 157, 0.35) !important;
+}
+
+/* =========================================================================
+   CARTE INTERACTIVE LEAFLET FLUIDE
+   ========================================================================= */
+#casablanca-map { 
+    z-index: 10; 
+    cursor: grab !important;
+    touch-action: pan-x pan-y;
+}
+#casablanca-map:active { cursor: grabbing !important; }
+.leaflet-control-attribution { display: none !important; }
+.leaflet-tile-pane { filter: saturate(0.4) contrast(0.96) brightness(1.02); }
+
+.custom-map-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: #0f392b;
+    color: #d9f99d;
+    border-radius: 50%;
+    border: 2.5px solid white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    font-size: 13px;
+    transition: transform 0.18s ease;
+}
+.custom-map-marker:hover { transform: scale(1.22); background-color: #15803d; }
+
+.map-expanded-wrapper {
+    position: fixed !important;
+    inset: 16px !important;
+    z-index: 85 !important;
+    height: auto !important;
+    border-radius: 2rem !important;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.45) !important;
+}
+
+/* =========================================================================
+   IMPRESSION PAPIER / PDF PROPRE (SANS FOND NOIR NI BOUTONS)
+   ========================================================================= */
+@media print {
+    body { background: #ffffff !important; margin: 0 !important; }
+    body * { visibility: hidden !important; }
+    #printable-match-sheet, #printable-match-sheet * { visibility: visible !important; }
+    #printable-match-sheet {
+        display: block !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        padding: 24px !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        page-break-after: avoid !important;
+    }
+}

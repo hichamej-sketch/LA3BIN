@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LA3BIN! — Trouve ton match à Casablanca</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 50% 15%, #162623 0%, #0b1210 55%, #060908 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        .landing-grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+            background-size: 32px 32px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Titre LA3BIN Géant en Cutout */
+        .landing-title-row {
+            display: inline-flex;
+            align-items: baseline;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .cutout-letters {
+            font-size: clamp(5.2rem, 19.5vw, 17.5rem);
+            font-weight: 900;
+            line-height: 0.88;
+            letter-spacing: -0.055em;
+            text-transform: uppercase;
+            background-image: url('https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=1800&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center 45%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            filter: drop-shadow(0 40px 60px rgba(0,0,0,0.85));
+            text-align: center;
+            animation: slowPan 14s ease-in-out infinite alternate;
+        }
+
+        /* Ponctuation écartée (margin-left: 0.28em) et large (0.85em) pour afficher le ? en entier */
+        .hero-punct-wrapper {
+            display: inline-flex;
+            justify-content: center;
+            align-items: baseline;
+            width: 0.85em;
+            margin-left: 0.28em;
+            padding: 0 0.1em;
+            font-size: clamp(5.2rem, 19.5vw, 17.5rem);
+            height: 1.05em;
+            clip-path: inset(0 -40% 0 -40%);
+        }
+
+        .hero-punct {
+            font-weight: 900;
+            line-height: 0.88;
+            display: inline-block;
+            transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.26s ease, color 0.26s ease;
+        }
+
+        .slide-out { transform: translateY(85%); opacity: 0; }
+        .slide-in { transform: translateY(-85%); opacity: 0; }
+
+        @keyframes slowPan {
+            0% { background-position: 35% 40%; }
+            100% { background-position: 65% 60%; }
+        }
+
+        /* Transition au scroll : le Hero se réduit et Qui sommes-nous glisse vers le haut sans vide */
+        #hero-main-block {
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s ease;
+        }
+        body.is-scrolled #hero-main-block {
+            transform: translateY(-120px) scale(0.88);
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        #qui-sommes-nous-section {
+            margin-top: -18vh;
+            transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        body.is-scrolled #qui-sommes-nous-section {
+            transform: translateY(-150px);
+        }
+
+        /* Cadre Smartphone Mockup */
+        .phone-mockup {
+            border: 10px solid #18181b;
+            border-radius: 3rem;
+            background: #09090b;
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.12);
+            overflow: hidden;
+            position: relative;
+        }
+        .phone-notch {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90px;
+            height: 22px;
+            background: #09090b;
+            border-radius: 999px;
+            z-index: 20;
+        }
+
+        /* Effet Zoom-Out lors de l'ouverture de l'arène */
+        .arena-zoom-enter {
+            transform: scale(5.5) !important;
+            opacity: 0 !important;
+            transition: transform 0.75s cubic-bezier(0.7, 0, 0.2, 1), opacity 0.65s ease !important;
+        }
+    </style>
+</head>
+<body class="selection:bg-[#4a9d8f] selection:text-white">
+
+    <div class="landing-grid-bg"></div>
+
+    <!-- =========================================================================
+         BARRE DE NAVIGATION FIXE (RAPPROCHÉE & BOUTON CONNEXION DIRECT)
+         ========================================================================= -->
+    <header class="fixed top-0 inset-x-0 z-50 bg-[#070b0a]/85 backdrop-blur-xl border-b border-white/10">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="#top" class="flex items-center gap-2 text-2xl sm:text-3xl font-black tracking-tighter uppercase">
+                <span>LA3BIN</span>
+                <span class="logo-punct text-[#4a9d8f]">!</span>
+            </a>
+
+            <nav class="hidden md:flex items-center gap-8 text-sm font-bold text-zinc-300">
+                <a href="#qui-sommes-nous-section" class="hover:text-white transition">Qui sommes-nous</a>
+                <a href="#three-steps-section" class="hover:text-white transition">Comment ça marche</a>
+                <a href="#partners-section" class="hover:text-white transition">Clubs Partenaires</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <!-- Bouton Connexion qui amène directement à la page de connexion -->
+                <a href="index.html?login=1" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-extrabold text-xs sm:text-sm px-5 py-2.5 rounded-full transition">
+                    Connexion
+                </a>
+                <a href="index.html?enter=1" class="bg-[#4a9d8f] hover:bg-[#3b8276] text-white font-black text-xs sm:text-sm px-6 py-2.5 rounded-full shadow-lg transition flex items-center gap-2">                    <span>Continuer vers l'Arène</span>
+                    <i class="fas fa-arrow-right text-xs"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- =========================================================================
+         1. HERO GÉANT (LA3BIN TRÈS GRAND + PONCTUATION ENTIÈRE + VRAIS COMPTEURS)
+         ========================================================================= -->
+    <main id="top" class="relative z-10 pt-28 pb-12 px-4 sm:px-8">
+        <section id="hero-main-block" class="max-w-6xl mx-auto min-h-[78vh] flex flex-col items-center justify-center text-center">
+            
+            <span class="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/5 border border-white/15 text-[#d9f99d] text-xs sm:text-sm font-extrabold uppercase tracking-widest mb-6 backdrop-blur-md">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#d9f99d] animate-ping"></span>
+                Casablanca Matchmaking · « L3eb ila baghi tl3eb »
+            </span>
+
+            <!-- TITRE GÉANT LA3BIN + ? ENTIER BIEN ESPACÉ -->
+            <div class="landing-title-row my-2">
+                <span class="cutout-letters">LA3BIN</span>
+                <span class="hero-punct-wrapper">
+                    <span class="logo-punct hero-punct" style="color: #5b8fb9;">?</span>
+                </span>
+            </div>
+
+            <p class="text-zinc-200 text-xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mt-6 max-w-3xl leading-snug">
+                « Trouve ton match. Complète ton équipe. Rejoue ensemble. »
+            </p>
+
+            <!-- BOUTON MAINTENIR POUR ENTRER + BOUTON CONNEXION -->
+            <div class="mt-10 mb-12 flex flex-col items-center gap-4">
+                <div class="flex flex-wrap items-center justify-center gap-4">
+                    <button id="btn-enter-arena"
+                            onmousedown="startHoldEnter(event)"
+                            onmouseup="stopHoldEnter()"
+                            onmouseleave="stopHoldEnter()"
+                            ontouchstart="startHoldEnter(event)"
+                            ontouchend="stopHoldEnter()"
+                            oncontextmenu="return false;"
+                            class="select-none relative overflow-hidden bg-white text-zinc-950 font-black text-sm sm:text-base uppercase tracking-widest px-10 sm:px-12 py-5 sm:py-6 rounded-full shadow-[0_20px_50px_rgba(74,157,143,0.35)] transition-transform active:scale-95 flex items-center gap-3 border-2 border-white cursor-pointer">
+                        <div id="btn-enter-progress" class="absolute inset-y-0 left-0 bg-[#4a9d8f]/35 w-0 pointer-events-none"></div>
+                        <span id="btn-enter-text" class="relative z-10 flex items-center gap-3 pointer-events-none">
+                            <i class="fas fa-fingerprint text-[#0f392b] text-2xl"></i>
+                            Maintenir pour entrer dans l'Arène
+                        </span>
+                    </button>
+
+                    <a href="index.html?login=1" class="bg-white/10 hover:bg-white/20 border-2 border-white/25 text-white font-black text-sm sm:text-base uppercase tracking-widest px-9 py-5 sm:py-6 rounded-full backdrop-blur-md transition">
+                        Se connecter / Créer un compte
+                    </a>
+                </div>
+                <p class="text-xs sm:text-sm font-bold uppercase tracking-widest text-zinc-400">
+                    Maintenez appuyé (1.5s) ou descendez pour découvrir LA3BIN!
+                </p>
+            </div>
+
+            <!-- 3 GRANDS COMPTEURS DYNAMIQUES -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-8 w-full max-w-4xl pt-8 border-t border-white/10">
+                <div class="bg-white/[0.05] backdrop-blur-md border border-white/10 rounded-3xl p-6 sm:p-8">
+                    <div class="text-[#d9f99d] text-4xl sm:text-6xl font-black tracking-tight" id="real-stat-games">128</div>
+                    <p class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-zinc-300 mt-2">Matchs joués grâce à nous</p>
+                </div>
+                <div class="bg-white/[0.05] backdrop-blur-md border border-white/10 rounded-3xl p-6 sm:p-8">
+                    <div class="text-[#5b8fb9] text-4xl sm:text-6xl font-black tracking-tight" id="real-stat-members">345</div>
+                    <p class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-zinc-300 mt-2">Membres Actifs</p>
+                </div>
+                <div class="bg-white/[0.05] backdrop-blur-md border border-white/10 rounded-3xl p-6 sm:p-8">
+                    <div class="text-[#e07a5f] text-4xl sm:text-6xl font-black tracking-tight" id="real-stat-friendships">264</div>
+                    <p class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-zinc-300 mt-2">Amitiés Créées</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             2. QUI SOMMES-NOUS (GLISSE VERS LE HAUT POUR COMBLER LE VIDE AU SCROLL)
+             ========================================================================= -->
+        <section id="qui-sommes-nous-section" class="max-w-6xl mx-auto pt-6 pb-20">
+            <div class="bg-white/[0.05] border border-white/15 rounded-[3rem] p-8 sm:p-14 backdrop-blur-xl shadow-2xl">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+                    <div class="lg:col-span-6 space-y-4">
+                        <span class="inline-block text-xs font-black uppercase tracking-widest text-[#d9f99d] bg-[#0f392b] px-4 py-1.5 rounded-full">
+                            Qui sommes-nous ?
+                        </span>
+                        <h2 class="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+                            Moins de messages WhatsApp. Plus de jeu sur le terrain.
+                        </h2>
+                        <p class="text-zinc-300 text-base sm:text-lg leading-relaxed">
+                            LA3BIN! est la plateforme de matchmaking sportif pensée pour Casablanca. Que ce soit pour compléter un Padel à Oasis, un Foot à 5 au Maârif ou un Tennis à Anfa, nous connectons des joueurs de même niveau avec une présence certifiée.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div class="bg-white/5 p-6 rounded-3xl border border-white/10">
+                            <img src="https://images.unsplash.com/photo-1554284126-aa88f22d8b74?q=80&w=200&auto=format&fit=crop" class="w-16 h-16 rounded-2xl object-cover mb-3 shadow-md" alt="Fiabilité">
+                            <h3 class="text-lg font-black">Fiabilité Vérifiée</h3>
+                            <p class="text-sm text-zinc-400 mt-1">Présence suivie sur chaque match pour éliminer les faux plans de dernière minute.</p>
+                        </div>
+                        <div class="bg-white/5 p-6 rounded-3xl border border-white/10">
+                            <img src="https://images.unsplash.com/photo-1574629810360-7efbb1925713?q=80&w=200&auto=format&fit=crop" class="w-16 h-16 rounded-2xl object-cover mb-3 shadow-md" alt="Vestiaire Tactique">
+                            <h3 class="text-lg font-black">Vestiaire Tactique</h3>
+                            <p class="text-sm text-zinc-400 mt-1">Compose ton équipe avant le match et partage le score en Sticker Instagram.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             3. TRUSTED PARTNERS (NOS CLUBS & PARTENAIRES DE CONFIANCE)
+             ========================================================================= -->
+        <section id="partners-section" class="py-12 border-y border-white/10 overflow-hidden relative">
+            <p class="text-center text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-zinc-400 mb-8 max-w-6xl mx-auto px-4">
+                Trusted Partners · Terrains & Clubs de référence
+            </p>
+            <!-- Animation CSS en ligne pour le défilement -->
+            <style>
+                @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+                .animate-marquee-infinite { display: flex; width: max-content; animation: marquee 20s linear infinite; }
+                .animate-marquee-infinite:hover { animation-play-state: paused; }
+            </style>
+            
+            <div class="w-full relative">
+                <!-- Dégradés sur les bords pour l'effet fondu -->
+                <div class="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#0b1210] to-transparent z-10"></div>
+                <div class="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#0b1210] to-transparent z-10"></div>
+                
+                <div class="animate-marquee-infinite gap-6 px-6">
+                    <!-- Groupe 1 -->
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-table-tennis-paddle-ball text-2xl text-[#d9f99d]"></i><span class="text-base font-black">Oasis Padel</span></div>
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-futbol text-2xl text-emerald-400"></i><span class="text-base font-black">City Foot 5</span></div>
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-table-tennis-paddle-ball text-2xl text-sky-400"></i><span class="text-base font-black">CAFC Padel</span></div>
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-baseball-ball text-2xl text-amber-400"></i><span class="text-base font-black">Côte Tennis</span></div>
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-basketball text-2xl text-orange-400"></i><span class="text-base font-black">Basket Arena</span></div>
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-hand-fist text-2xl text-rose-400"></i><span class="text-base font-black">KO Boxing</span></div>
+                    
+                    <!-- Groupe 2 (Duplicata pour un défilement parfait) -->
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-table-tennis-paddle-ball text-2xl text-[#d9f99d]"></i><span class="text-base font-black">Oasis Padel</span></div>
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-futbol text-2xl text-emerald-400"></i><span class="text-base font-black">City Foot 5</span></div>
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-table-tennis-paddle-ball text-2xl text-sky-400"></i><span class="text-base font-black">CAFC Padel</span></div>
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-baseball-ball text-2xl text-amber-400"></i><span class="text-base font-black">Côte Tennis</span></div>
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-basketball text-2xl text-orange-400"></i><span class="text-base font-black">Basket Arena</span></div>
+                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl py-6 px-8 flex items-center gap-3 hover:bg-white/10 transition cursor-default min-w-[200px] justify-center"><i class="fas fa-hand-fist text-2xl text-rose-400"></i><span class="text-base font-black">KO Boxing</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             4. FROM DOWNLOAD TO KICKOFF IN 3 SIMPLE STEPS (AVEC IMAGES SUR TÉLÉPHONE)
+             ========================================================================= -->
+        <section id="three-steps-section" class="max-w-6xl mx-auto py-24">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="text-xs font-black uppercase tracking-widest text-[#4a9d8f]">Simple & Rapide</span>
+                <h2 class="text-3xl sm:text-5xl font-black tracking-tight mt-2">
+                    From Download to Kickoff in 3 Simple Steps
+                </h2>
+                <p class="text-zinc-400 text-base sm:text-lg mt-3">
+                    Du téléchargement au coup d'envoi en 3 étapes simples sur ton téléphone.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <!-- Étape 1 -->
+                <div class="flex flex-col items-center text-center">
+                    <div class="phone-mockup w-64 h-[460px] mb-6 flex flex-col justify-between p-4 bg-zinc-900">
+                        <div class="phone-notch"></div>
+                        <img src="https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=600&auto=format&fit=crop" class="w-full h-52 object-cover rounded-2xl mt-6" alt="Step 1">
+                        <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl text-left border border-white/10">
+                            <span class="bg-[#d9f99d] text-[#0f392b] text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">1. Explore</span>
+                            <h4 class="font-black text-base mt-2">Padel · Oasis 19:00</h4>
+                            <p class="text-xs text-zinc-300 mt-1">Filtre par quartier, niveau (Men 7a9i, Msellek, Nadi) et horaire.</p>
+                            <div class="mt-3 bg-[#4a9d8f] text-white text-center py-2 rounded-full text-xs font-black">Rejoindre (1 place)</div>
+                        </div>
+                    </div>
+                    <span class="w-10 h-10 rounded-full bg-[#4a9d8f] text-white font-black text-base flex items-center justify-center mb-3">1</span>
+                    <h3 class="text-xl font-black">1. Trouve ton match</h3>
+                    <p class="text-sm text-zinc-400 mt-1 max-w-xs">Repère sur la carte interactive les parties qui cherchent des joueurs autour de toi.</p>
+                </div>
+
+                <!-- Étape 2 -->
+                <div class="flex flex-col items-center text-center">
+                    <div class="phone-mockup w-64 h-[460px] mb-6 flex flex-col justify-between p-4 bg-zinc-900">
+                        <div class="phone-notch"></div>
+                        <img src="https://images.pexels.com/photos/114296/pexels-photo-114296.jpeg?auto=compress&cs=tinysrgb&w=600" class="w-full h-52 object-cover rounded-2xl mt-6" alt="Step 2">
+                        <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl text-left border border-white/10">
+                            <span class="bg-amber-400 text-zinc-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">2. Vestiaire</span>
+                            <h4 class="font-black text-base mt-2">Formation & Tactique</h4>
+                            <p class="text-xs text-zinc-300 mt-1">Place tes coéquipiers sur le terrain et discute dans le salon du match.</p>
+                            <div class="mt-3 bg-white text-zinc-950 text-center py-2 rounded-full text-xs font-black">Équipe Confirmée ✓</div>
+                        </div>
+                    </div>
+                    <span class="w-10 h-10 rounded-full bg-[#5b8fb9] text-white font-black text-base flex items-center justify-center mb-3">2</span>
+                    <h3 class="text-xl font-black">2. Complète ton équipe</h3>
+                    <p class="text-sm text-zinc-400 mt-1 max-w-xs">Accède au Vestiaire tactique, prépare la composition et valide les présences.</p>
+                </div>
+
+                <!-- Étape 3 -->
+                <div class="flex flex-col items-center text-center">
+                    <div class="phone-mockup w-64 h-[460px] mb-6 flex flex-col justify-between p-4 bg-zinc-900">
+                        <div class="phone-notch"></div>
+                        <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=600&auto=format&fit=crop" class="w-full h-52 object-cover rounded-2xl mt-6" alt="Step 3">
+                        <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl text-left border border-white/10">
+                            <span class="bg-[#e07a5f] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">3. Kickoff & MVP</span>
+                            <h4 class="font-black text-base mt-2">Score : 6-4 / 6-3 👑</h4>
+                            <p class="text-xs text-zinc-300 mt-1">Couronne le MVP, garde ta flamme hebdo 🔥 et exporte ton sticker Insta.</p>
+                            <div class="mt-3 bg-gradient-to-r from-pink-600 to-amber-500 text-white text-center py-2 rounded-full text-xs font-black">Partager en Story</div>
+                        </div>
+                    </div>
+                    <span class="w-10 h-10 rounded-full bg-[#e07a5f] text-white font-black text-base flex items-center justify-center mb-3">3</span>
+                    <h3 class="text-xl font-black">3. Joue & Rejoue ensemble</h3>
+                    <p class="text-sm text-zinc-400 mt-1 max-w-xs">Joue ton match, maintiens tes flammes avec tes amis et relance la même équipe en 1 clic.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             5. READY TO ELEVATE YOUR GAME? (AVEC LIENS APP STORE & GOOGLE PLAY)
+             ========================================================================= -->
+        <section class="max-w-6xl mx-auto pb-20">
+            <div class="bg-gradient-to-br from-[#0f392b] via-[#134e3a] to-[#0b291f] border-2 border-[#d9f99d]/30 rounded-[3rem] p-10 sm:p-16 text-center shadow-2xl relative overflow-hidden">
+                <span class="inline-block bg-[#d9f99d] text-[#0f392b] text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full mb-4">
+                    L3eb ila baghi tl3eb
+                </span>
+                <h2 class="text-3xl sm:text-6xl font-black tracking-tight leading-tight max-w-3xl mx-auto">
+                    Ready to Elevate Your Game?
+                </h2>
+                <p class="text-zinc-200 text-base sm:text-xl font-medium mt-4 max-w-2xl mx-auto">
+                    Join thousands of players creating connections through soccer, padel, tennis and basketball in Casablanca.
+                </p>
+
+                <!-- Boutons App Store, Google Play & Accès Web Direct -->
+                <div class="flex flex-wrap items-center justify-center gap-4 mt-10">
+                    <a href="https://play.google.com/store" target="_blank" rel="noopener" class="bg-zinc-950 hover:bg-black text-white border border-white/20 px-7 py-4 rounded-2xl flex items-center gap-3.5 transition active:scale-95 shadow-xl">
+                        <i class="fab fa-google-play text-2xl text-[#4a9d8f]"></i>
+                        <div class="text-left">
+                            <span class="block text-[10px] uppercase tracking-wider text-zinc-400 leading-none">GET IT ON</span>
+                            <span class="block text-base font-black leading-tight mt-0.5">Google Play</span>
+                        </div>
+                    </a>
+
+                    <a href="https://www.apple.com/app-store/" target="_blank" rel="noopener" class="bg-zinc-950 hover:bg-black text-white border border-white/20 px-7 py-4 rounded-2xl flex items-center gap-3.5 transition active:scale-95 shadow-xl">
+                        <i class="fab fa-apple text-3xl text-white"></i>
+                        <div class="text-left">
+                            <span class="block text-[10px] uppercase tracking-wider text-zinc-400 leading-none">Download on the</span>
+                            <span class="block text-base font-black leading-tight mt-0.5">App Store</span>
+                        </div>
+                    </a>
+
+                    <a href="index.html?enter=1" class="bg-[#d9f99d] hover:bg-[#bef264] text-[#0f392b] font-black text-sm sm:text-base uppercase tracking-wider px-8 py-5 rounded-2xl transition active:scale-95 shadow-xl flex items-center gap-2">
+                        <span>Ouvrir l'Application Web</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Animation synchronisée de la ponctuation (? -> . -> !)
+        const PUNCT_STATES = [
+            { char: '?', color: '#5b8fb9' },
+            { char: '.', color: '#e07a5f' },
+            { char: '!', color: '#4a9d8f' }
+        ];
+        let pIdx = 0;
+        setInterval(() => {
+            pIdx = (pIdx + 1) % PUNCT_STATES.length;
+            const next = PUNCT_STATES[pIdx];
+            document.querySelectorAll('.logo-punct').forEach(el => {
+                el.classList.add('slide-out');
+                setTimeout(() => {
+                    el.innerText = next.char;
+                    el.style.color = next.color;
+                    el.classList.remove('slide-out');
+                    el.classList.add('slide-in');
+                    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('slide-in')));
+                }, 230);
+            });
+        }, 1600);
+
+        // Fait glisser "Qui sommes-nous" vers le haut dès qu'on scrolle pour combler le vide
+        window.addEventListener('scroll', () => {
+            document.body.classList.toggle('is-scrolled', window.scrollY > 50);
+        }, { passive: true });
+
+        // Maintenir appuyé 1.5s pour entrer dans index.html
+        let holdVal = 0;
+        let holdTimer = null;
+        function startHoldEnter(e) {
+            if (e && e.type === 'touchstart') e.preventDefault();
+            clearInterval(holdTimer);
+            const prog = document.getElementById('btn-enter-progress');
+            const txt = document.getElementById('btn-enter-text');
+            holdTimer = setInterval(() => {
+                holdVal = Math.min(100, holdVal + 3);
+                if (prog) prog.style.width = `${holdVal}%`;
+                if (txt) txt.innerHTML = `<i class="fas fa-bolt text-[#e07a5f]"></i> Ouverture ${Math.floor(holdVal)}%`;
+                if (holdVal >= 100) {
+                    clearInterval(holdTimer);
+                    document.body.classList.add('arena-zoom-enter');
+                    sessionStorage.setItem('la3bin_entered', 'true');
+                    window.location.href = 'index.html?enter=1';
+                }
+            }, 30);
+        }
+        function stopHoldEnter() {
+            if (holdVal >= 100) return;
+            clearInterval(holdTimer);
+            const prog = document.getElementById('btn-enter-progress');
+            const txt = document.getElementById('btn-enter-text');
+            holdTimer = setInterval(() => {
+                holdVal = Math.max(0, holdVal - 8);
+                if (prog) prog.style.width = `${holdVal}%`;
+                if (holdVal <= 0) {
+                    clearInterval(holdTimer);
+                    if (txt) txt.innerHTML = '<i class="fas fa-fingerprint text-[#0f392b] text-2xl"></i> Maintenir pour entrer dans l\'Arène';
+                }
+            }, 25);
+        }
+    </script>
+</body>
+</html>
